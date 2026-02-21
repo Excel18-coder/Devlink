@@ -70,7 +70,7 @@ const JobApplicants = () => {
             <Button variant="ghost" size="sm" className="-ml-1" onClick={() => navigate(-1)}>
               <ArrowLeft className="h-4 w-4 mr-1" /> Back
             </Button>
-            <h1 className="text-3xl font-heading font-bold">Job Applicants</h1>
+            <h1 className="text-xl sm:text-3xl font-heading font-bold">Job Applicants</h1>
           </div>
 
           {applicants.length === 0 ? (
@@ -84,7 +84,7 @@ const JobApplicants = () => {
               {applicants.map((applicant) => (
                 <Card key={applicant.id}>
                   <CardHeader>
-                    <div className="flex items-start justify-between">
+                    <div className="flex items-start justify-between flex-wrap gap-2">
                       <div>
                         <CardTitle className="text-lg">{applicant.fullName}</CardTitle>
                         <p className="text-sm text-muted-foreground">

@@ -148,7 +148,7 @@ const EditProfile = () => {
             <Button variant="ghost" size="sm" className="-ml-1" onClick={() => navigate(-1)}>
               <ArrowLeft className="h-4 w-4 mr-1" /> Back
             </Button>
-            <h1 className="text-3xl font-heading font-bold">Edit Profile</h1>
+            <h1 className="text-xl sm:text-3xl font-heading font-bold">Edit Profile</h1>
           </div>
 
           {/* Avatar upload */}

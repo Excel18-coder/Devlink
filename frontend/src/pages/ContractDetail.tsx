@@ -477,8 +477,8 @@ const ContractDetail = () => {
                               ) : (
                                 <Clock className="h-5 w-5 text-muted-foreground flex-shrink-0" />
                               )}
-                              <div>
-                                <p className="font-semibold">{ms.title}</p>
+                              <div className="min-w-0">
+                                <p className="font-semibold break-words">{ms.title}</p>
                                 <div className="flex items-center gap-2 text-sm text-muted-foreground mt-0.5">
                                   <DollarSign className="h-3 w-3" />
                                   <span className="font-medium">${ms.amount.toLocaleString()}</span>

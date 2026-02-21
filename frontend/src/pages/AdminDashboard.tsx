@@ -384,15 +384,15 @@ const AdminDashboard = () => {
           </div>
 
           <Tabs defaultValue="overview" className="space-y-6">
-            <TabsList className="flex flex-wrap h-auto gap-1">
-              <TabsTrigger value="overview" className="flex items-center gap-1"><TrendingUp className="h-4 w-4" /><span className="hidden sm:inline">Overview</span></TabsTrigger>
-              <TabsTrigger value="users" className="flex items-center gap-1"><Users className="h-4 w-4" /><span className="hidden sm:inline">Users</span></TabsTrigger>
-              <TabsTrigger value="jobs" className="flex items-center gap-1"><Briefcase className="h-4 w-4" /><span className="hidden sm:inline">Jobs</span></TabsTrigger>
-              <TabsTrigger value="contracts" className="flex items-center gap-1"><FileText className="h-4 w-4" /><span className="hidden sm:inline">Contracts</span></TabsTrigger>
-              <TabsTrigger value="employers" className="flex items-center gap-1"><Building2 className="h-4 w-4" /><span className="hidden sm:inline">Employers</span></TabsTrigger>
-              <TabsTrigger value="disputes" className="flex items-center gap-1"><AlertTriangle className="h-4 w-4" /><span className="hidden sm:inline">Disputes</span>{disputes.length > 0 && <Badge variant="destructive" className="ml-1 text-xs">{disputes.length}</Badge>}</TabsTrigger>
-              <TabsTrigger value="audit" className="flex items-center gap-1"><ScrollText className="h-4 w-4" /><span className="hidden sm:inline">Audit</span></TabsTrigger>
-              <TabsTrigger value="config" className="flex items-center gap-1"><Settings className="h-4 w-4" /><span className="hidden sm:inline">Config</span></TabsTrigger>
+            <TabsList className="grid grid-cols-4 sm:flex sm:flex-wrap h-auto gap-1 w-full">
+              <TabsTrigger value="overview" className="flex items-center justify-center gap-1 text-xs sm:text-sm px-2 py-1.5"><TrendingUp className="h-3.5 w-3.5 shrink-0" /><span>Overview</span></TabsTrigger>
+              <TabsTrigger value="users" className="flex items-center justify-center gap-1 text-xs sm:text-sm px-2 py-1.5"><Users className="h-3.5 w-3.5 shrink-0" /><span>Users</span></TabsTrigger>
+              <TabsTrigger value="jobs" className="flex items-center justify-center gap-1 text-xs sm:text-sm px-2 py-1.5"><Briefcase className="h-3.5 w-3.5 shrink-0" /><span>Jobs</span></TabsTrigger>
+              <TabsTrigger value="contracts" className="flex items-center justify-center gap-1 text-xs sm:text-sm px-2 py-1.5"><FileText className="h-3.5 w-3.5 shrink-0" /><span>Contracts</span></TabsTrigger>
+              <TabsTrigger value="employers" className="flex items-center justify-center gap-1 text-xs sm:text-sm px-2 py-1.5"><Building2 className="h-3.5 w-3.5 shrink-0" /><span>Employers</span></TabsTrigger>
+              <TabsTrigger value="disputes" className="flex items-center justify-center gap-1 text-xs sm:text-sm px-2 py-1.5"><AlertTriangle className="h-3.5 w-3.5 shrink-0" /><span>Disputes</span>{disputes.length > 0 && <Badge variant="destructive" className="ml-1 text-xs">{disputes.length}</Badge>}</TabsTrigger>
+              <TabsTrigger value="audit" className="flex items-center justify-center gap-1 text-xs sm:text-sm px-2 py-1.5"><ScrollText className="h-3.5 w-3.5 shrink-0" /><span>Audit</span></TabsTrigger>
+              <TabsTrigger value="config" className="flex items-center justify-center gap-1 text-xs sm:text-sm px-2 py-1.5"><Settings className="h-3.5 w-3.5 shrink-0" /><span>Config</span></TabsTrigger>
             </TabsList>
 
             {/* ─── OVERVIEW ─────────────────────────────────────────────────── */}
@@ -486,15 +486,15 @@ const AdminDashboard = () => {
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-4">
                   <CardTitle>User Management</CardTitle>
-                  <div className="flex gap-2 flex-wrap">
+                  <div className="flex gap-2 flex-wrap w-full sm:w-auto">
                     <Input
                       placeholder="Search name or email…"
                       value={userSearch}
                       onChange={(e) => setUserSearch(e.target.value)}
-                      className="w-48"
+                      className="w-full sm:w-48"
                     />
                     <Select value={userRole} onValueChange={setUserRole}>
-                      <SelectTrigger className="w-32"><SelectValue placeholder="Role" /></SelectTrigger>
+                      <SelectTrigger className="w-full sm:w-32"><SelectValue placeholder="Role" /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">All roles</SelectItem>
                         <SelectItem value="developer">Developer</SelectItem>
@@ -503,7 +503,7 @@ const AdminDashboard = () => {
                       </SelectContent>
                     </Select>
                     <Select value={userStatus} onValueChange={setUserStatus}>
-                      <SelectTrigger className="w-36"><SelectValue placeholder="Status" /></SelectTrigger>
+                      <SelectTrigger className="w-full sm:w-36"><SelectValue placeholder="Status" /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">All statuses</SelectItem>
                         <SelectItem value="active">Active</SelectItem>
@@ -515,7 +515,7 @@ const AdminDashboard = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
+                    <table className="w-full min-w-[650px] text-sm">
                       <thead>
                         <tr className="border-b text-muted-foreground">
                           <th className="text-left py-3 px-2">Name</th>
@@ -563,7 +563,7 @@ const AdminDashboard = () => {
               <Card>
                 <CardHeader><CardTitle className="text-base flex items-center gap-2"><ShieldCheck className="h-4 w-4" />Create Admin User</CardTitle></CardHeader>
                 <CardContent>
-                  <form onSubmit={handleCreateAdmin} className="grid sm:grid-cols-3 gap-4">
+                  <form onSubmit={handleCreateAdmin} className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div className="space-y-1">
                       <Label>Full Name</Label>
                       <Input value={newAdminForm.fullName} onChange={(e) => setNewAdminForm({ ...newAdminForm, fullName: e.target.value })} required />
@@ -591,12 +591,12 @@ const AdminDashboard = () => {
                     placeholder="Search jobs…"
                     value={jobSearch}
                     onChange={(e) => setJobSearch(e.target.value)}
-                    className="w-48"
+                    className="w-full sm:w-48"
                   />
                 </CardHeader>
                 <CardContent>
                   <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
+                    <table className="w-full min-w-[550px] text-sm">
                       <thead>
                         <tr className="border-b text-muted-foreground">
                           <th className="text-left py-3 px-2">Title</th>
@@ -652,7 +652,7 @@ const AdminDashboard = () => {
                     placeholder="Search employer / developer…"
                     value={contractSearch}
                     onChange={(e) => setContractSearch(e.target.value)}
-                    className="w-64"
+                    className="w-full sm:w-64"
                   />
                 </CardHeader>
                 <CardContent>
@@ -795,7 +795,7 @@ const AdminDashboard = () => {
                     <p className="text-center py-8 text-muted-foreground">No employer profiles yet</p>
                   ) : (
                     <div className="overflow-x-auto">
-                      <table className="w-full text-sm">
+                      <table className="w-full min-w-[900px] text-sm">
                         <thead>
                           <tr className="border-b text-muted-foreground">
                             <th className="text-left py-3 px-2">Company</th>
@@ -890,14 +890,14 @@ const AdminDashboard = () => {
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-4">
                   <CardTitle>Audit Logs</CardTitle>
-                  <div className="flex gap-2 flex-wrap">
-                    <Input placeholder="Filter entity…" value={auditEntity} onChange={(e) => setAuditEntity(e.target.value)} className="w-36" />
-                    <Input placeholder="Filter action…" value={auditAction} onChange={(e) => setAuditAction(e.target.value)} className="w-36" />
+                  <div className="flex gap-2 flex-wrap w-full sm:w-auto">
+                    <Input placeholder="Filter entity…" value={auditEntity} onChange={(e) => setAuditEntity(e.target.value)} className="w-full sm:w-36" />
+                    <Input placeholder="Filter action…" value={auditAction} onChange={(e) => setAuditAction(e.target.value)} className="w-full sm:w-36" />
                   </div>
                 </CardHeader>
                 <CardContent>
                   <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
+                    <table className="w-full min-w-[600px] text-sm">
                       <thead>
                         <tr className="border-b text-muted-foreground">
                           <th className="text-left py-3 px-2">Time</th>

@@ -52,7 +52,7 @@ const Developers = () => {
       <div className="pt-24 pb-16">
         <div className="container mx-auto px-4">
           <div className="mb-10">
-            <h1 className="text-3xl font-heading font-bold text-foreground mb-2">Find Developers</h1>
+            <h1 className="text-2xl sm:text-3xl font-heading font-bold text-foreground mb-2">Find Developers</h1>
             <p className="text-muted-foreground">Browse verified talent from around the world.</p>
           </div>
 

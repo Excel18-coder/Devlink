@@ -68,7 +68,7 @@ const CreateJob = () => {
             <Button variant="ghost" size="sm" className="-ml-1" onClick={() => navigate(-1)}>
               <ArrowLeft className="h-4 w-4 mr-1" /> Back
             </Button>
-            <h1 className="text-3xl font-heading font-bold">Post a New Job</h1>
+            <h1 className="text-xl sm:text-3xl font-heading font-bold">Post a New Job</h1>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">

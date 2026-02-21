@@ -123,7 +123,7 @@ const Messages = () => {
       <Navbar />
       <div className="pt-24 pb-16">
         <div className="container mx-auto px-4">
-          <h1 className="text-3xl font-heading font-bold mb-8">Messages</h1>
+          <h1 className="text-2xl sm:text-3xl font-heading font-bold mb-8">Messages</h1>
 
           <div className="flex flex-col lg:grid lg:grid-cols-4 gap-6 lg:h-[600px]">
             {/* Conversations List */}

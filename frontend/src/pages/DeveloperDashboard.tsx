@@ -360,7 +360,7 @@ const DeveloperDashboard = () => {
                               <p className="text-sm text-muted-foreground mt-2 line-clamp-2">{app.coverLetter}</p>
                             )}
                           </div>
-                          <div className="flex gap-2 flex-shrink-0">
+                          <div className="flex gap-2 flex-wrap flex-shrink-0">
                             <Link to={`/jobs/${app.jobId}`}>
                               <Button variant="outline" size="sm">View Job</Button>
                             </Link>

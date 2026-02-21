@@ -113,7 +113,7 @@ const EditProfile = () => {
     if (!file) return;
     try {
       await uploadFile("/developers/me/resume", file, "resume");
-      toast({ title: "Resume uploaded to Cloudinary!" });
+      toast({ title: "Resume uploaded successfully!" });
     } catch {
       toast({ title: "Failed to upload resume", variant: "destructive" });
     }
@@ -125,7 +125,7 @@ const EditProfile = () => {
     try {
       const result = await uploadFile<{ avatarUrl: string }>("/developers/me/avatar", file, "avatar");
       setAvatarPreview(result.avatarUrl);
-      toast({ title: "Avatar uploaded to Cloudinary!" });
+      toast({ title: "Avatar uploaded successfully!" });
     } catch {
       toast({ title: "Failed to upload avatar", variant: "destructive" });
     }
@@ -167,7 +167,7 @@ const EditProfile = () => {
                 </Button>
               </Label>
               <Input id="avatar" type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleAvatarUpload} />
-              <p className="text-xs text-muted-foreground mt-1">JPEG, PNG or WebP · Stored on Cloudinary</p>
+              <p className="text-xs text-muted-foreground mt-1">JPEG, PNG or WebP</p>
             </div>
           </div>
 
@@ -284,7 +284,7 @@ const EditProfile = () => {
             <div>
               <Label htmlFor="resume">Upload Resume</Label>
               <Input id="resume" type="file" accept=".pdf,application/pdf" onChange={handleResumeUpload} />
-              <p className="text-xs text-muted-foreground mt-1">PDF · Stored securely on Cloudinary</p>
+              <p className="text-xs text-muted-foreground mt-1">PDF only</p>
             </div>
 
             <Button type="submit" className="w-full" disabled={saving}>

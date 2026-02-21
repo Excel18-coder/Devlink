@@ -128,7 +128,7 @@ const EditCompany = () => {
                 </Button>
               </Label>
               <Input id="avatar" type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleAvatarUpload} />
-              <p className="text-xs text-muted-foreground mt-1">JPEG, PNG or WebP · Stored on Cloudinary</p>
+              <p className="text-xs text-muted-foreground mt-1">JPEG, PNG or WebP</p>
             </div>
           </div>
 

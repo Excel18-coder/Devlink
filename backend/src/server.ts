@@ -23,7 +23,23 @@ const app = express();
 
 // Middleware
 app.use(helmet());
-app.use(cors({ origin: env.corsOrigin, credentials: true }));
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true); // allow non-browser requests
+    const allowed = env.corsOrigin.split(",").map((o) => o.trim());
+    const match = allowed.some((pattern) => {
+      if (pattern === "*" || pattern === origin) return true;
+      if (pattern.startsWith("https://*.")) {
+        const suffix = pattern.slice("https://*.".length);
+        return origin.startsWith("https://") && origin.endsWith(`.${suffix}`);
+      }
+      return false;
+    });
+    if (match) return callback(null, true);
+    return callback(new Error(`CORS: origin ${origin} not allowed`));
+  },
+  credentials: true
+}));
 app.use(express.json());
 app.use(morgan("dev"));
 

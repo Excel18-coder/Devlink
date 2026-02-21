@@ -19,12 +19,15 @@ const HeroSection = () => {
       <div className="hidden sm:block absolute bottom-20 left-0 w-64 h-64 bg-accent/8 rounded-full blur-2xl" />
 
       <div className="container relative z-10 mx-auto px-4 pt-24 pb-12 sm:pb-16">
-        <div className="max-w-3xl">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-primary/20 bg-primary/5 mb-6 animate-fade-in">
-            <span className="w-2 h-2 rounded-full bg-accent animate-pulse shrink-0" />
-            <span className="text-xs font-medium text-primary">
-              10,000+ developers • 50+ countries
-            </span>
+        <div className="max-w-3xl mx-auto sm:mx-0 text-center sm:text-left">
+          {/* Badge — centered and wraps on mobile */}
+          <div className="flex justify-center sm:justify-start mb-6 animate-fade-in">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-primary/20 bg-primary/5">
+              <span className="w-2 h-2 rounded-full bg-accent animate-pulse shrink-0" />
+              <span className="text-xs font-medium text-primary whitespace-nowrap">
+                10,000+ developers • 50+ countries
+              </span>
+            </div>
           </div>
 
           <h1 className="text-3xl sm:text-5xl lg:text-6xl font-heading font-bold text-secondary-foreground leading-tight mb-4 sm:mb-6 animate-fade-in" style={{ animationDelay: "0.1s" }}>
@@ -32,7 +35,7 @@ const HeroSection = () => {
             <span className="text-gradient">software talent</span>
           </h1>
 
-          <p className="text-base sm:text-xl text-secondary-foreground/60 max-w-xl mb-8 animate-fade-in" style={{ animationDelay: "0.2s" }}>
+          <p className="text-base sm:text-xl text-secondary-foreground/60 max-w-xl mb-8 mx-auto sm:mx-0 animate-fade-in" style={{ animationDelay: "0.2s" }}>
             Connect with vetted developers for remote, contract, and full-time roles.
             Milestone-based contracts. Zero hassle.
           </p>
@@ -57,7 +60,7 @@ const HeroSection = () => {
           </div>
 
           {/* Quick search */}
-          <div className="relative max-w-lg animate-fade-in" style={{ animationDelay: "0.4s" }}>
+          <div className="relative max-w-lg mx-auto sm:mx-0 animate-fade-in" style={{ animationDelay: "0.4s" }}>
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
             <input
               type="text"

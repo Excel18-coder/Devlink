@@ -82,7 +82,7 @@ const Developers = () => {
               <p className="text-muted-foreground">No developers found</p>
             </div>
           ) : (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {developers.map((dev) => (
                 <div key={dev.id} className="bg-card border border-border rounded-xl p-6 card-elevated">
                   <div className="flex items-start justify-between mb-4">

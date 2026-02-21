@@ -45,7 +45,7 @@ const Register = () => {
       <Navbar />
       <div className="pt-24 pb-16 flex items-center justify-center">
         <div className="w-full max-w-md mx-auto px-4">
-          <div className="bg-card border border-border rounded-xl p-8">
+          <div className="bg-card border border-border rounded-xl p-6 sm:p-8">
             <h1 className="text-2xl font-heading font-bold text-center mb-6">Create Account</h1>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>

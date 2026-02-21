@@ -125,9 +125,9 @@ const Messages = () => {
         <div className="container mx-auto px-4">
           <h1 className="text-3xl font-heading font-bold mb-8">Messages</h1>
 
-          <div className="grid lg:grid-cols-4 gap-6 h-[600px]">
+          <div className="flex flex-col lg:grid lg:grid-cols-4 gap-6 lg:h-[600px]">
             {/* Conversations List */}
-            <Card className="lg:col-span-1">
+            <Card className="lg:col-span-1 lg:overflow-y-auto">
               <CardHeader>
                 <CardTitle className="text-sm">Conversations</CardTitle>
               </CardHeader>
@@ -164,7 +164,7 @@ const Messages = () => {
             </Card>
 
             {/* Messages */}
-            <Card className="lg:col-span-3 flex flex-col">
+            <Card className="lg:col-span-3 flex flex-col h-[500px] lg:h-auto">
               <CardHeader className="border-b">
                 <CardTitle className="text-sm">
                   {selectedConv

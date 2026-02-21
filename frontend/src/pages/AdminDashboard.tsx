@@ -384,15 +384,15 @@ const AdminDashboard = () => {
           </div>
 
           <Tabs defaultValue="overview" className="space-y-6">
-            <TabsList className="flex-wrap h-auto gap-1">
-              <TabsTrigger value="overview"><TrendingUp className="h-4 w-4 mr-1" />Overview</TabsTrigger>
-              <TabsTrigger value="users"><Users className="h-4 w-4 mr-1" />Users</TabsTrigger>
-              <TabsTrigger value="jobs"><Briefcase className="h-4 w-4 mr-1" />Jobs</TabsTrigger>
-              <TabsTrigger value="contracts"><FileText className="h-4 w-4 mr-1" />Contracts</TabsTrigger>
-              <TabsTrigger value="employers"><Building2 className="h-4 w-4 mr-1" />Employers</TabsTrigger>
-              <TabsTrigger value="disputes"><AlertTriangle className="h-4 w-4 mr-1" />Disputes {disputes.length > 0 && <Badge variant="destructive" className="ml-1 text-xs">{disputes.length}</Badge>}</TabsTrigger>
-              <TabsTrigger value="audit"><ScrollText className="h-4 w-4 mr-1" />Audit Logs</TabsTrigger>
-              <TabsTrigger value="config"><Settings className="h-4 w-4 mr-1" />Config</TabsTrigger>
+            <TabsList className="flex flex-wrap h-auto gap-1">
+              <TabsTrigger value="overview" className="flex items-center gap-1"><TrendingUp className="h-4 w-4" /><span className="hidden sm:inline">Overview</span></TabsTrigger>
+              <TabsTrigger value="users" className="flex items-center gap-1"><Users className="h-4 w-4" /><span className="hidden sm:inline">Users</span></TabsTrigger>
+              <TabsTrigger value="jobs" className="flex items-center gap-1"><Briefcase className="h-4 w-4" /><span className="hidden sm:inline">Jobs</span></TabsTrigger>
+              <TabsTrigger value="contracts" className="flex items-center gap-1"><FileText className="h-4 w-4" /><span className="hidden sm:inline">Contracts</span></TabsTrigger>
+              <TabsTrigger value="employers" className="flex items-center gap-1"><Building2 className="h-4 w-4" /><span className="hidden sm:inline">Employers</span></TabsTrigger>
+              <TabsTrigger value="disputes" className="flex items-center gap-1"><AlertTriangle className="h-4 w-4" /><span className="hidden sm:inline">Disputes</span>{disputes.length > 0 && <Badge variant="destructive" className="ml-1 text-xs">{disputes.length}</Badge>}</TabsTrigger>
+              <TabsTrigger value="audit" className="flex items-center gap-1"><ScrollText className="h-4 w-4" /><span className="hidden sm:inline">Audit</span></TabsTrigger>
+              <TabsTrigger value="config" className="flex items-center gap-1"><Settings className="h-4 w-4" /><span className="hidden sm:inline">Config</span></TabsTrigger>
             </TabsList>
 
             {/* ─── OVERVIEW ─────────────────────────────────────────────────── */}

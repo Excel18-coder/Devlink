@@ -101,12 +101,12 @@ const JobDetail = () => {
             <div className="lg:col-span-2">
               <Card>
                 <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <CardTitle className="text-2xl mb-2">{job.title}</CardTitle>
+                  <div className="flex items-start justify-between gap-2 flex-wrap">
+                    <div className="flex-1 min-w-0">
+                      <CardTitle className="text-xl sm:text-2xl mb-2 break-words">{job.title}</CardTitle>
                       <p className="text-muted-foreground">{job.companyName}</p>
                     </div>
-                    <Badge>{job.jobType}</Badge>
+                    <Badge className="shrink-0">{job.jobType}</Badge>
                   </div>
                 </CardHeader>
                 <CardContent>

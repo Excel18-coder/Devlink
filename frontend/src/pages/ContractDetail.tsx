@@ -275,8 +275,8 @@ const ContractDetail = () => {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="grid sm:grid-cols-3 gap-4 mb-4">
-                  <div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4">
+                  <div className="col-span-2 sm:col-span-1">
                     <p className="text-sm text-muted-foreground">Total Budget</p>
                     <p className="text-xl font-bold">${contract.totalAmount.toLocaleString()}</p>
                     {milestoneTotal !== contract.totalAmount && (

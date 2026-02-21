@@ -99,7 +99,7 @@ const Jobs = () => {
             <div className="space-y-4">
               {jobs.map((job) => (
                 <Link key={job.id} to={`/jobs/${job.id}`}>
-                  <div className="bg-card border border-border rounded-xl p-6 card-elevated flex flex-col lg:flex-row lg:items-center gap-4 hover:border-primary/50 transition-colors">
+                    <div className="bg-card border border-border rounded-xl p-4 sm:p-6 card-elevated flex flex-col lg:flex-row lg:items-center gap-4 hover:border-primary/50 transition-colors">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
                         <h3 className="font-heading font-semibold text-card-foreground text-lg">{job.title}</h3>

@@ -94,17 +94,17 @@ const DeveloperProfile = () => {
               <Card>
                 <CardHeader>
                   <div className="flex items-start gap-4">
-                    <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-                      <span className="text-2xl font-heading font-bold text-primary">
+                    <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                      <span className="text-xl sm:text-2xl font-heading font-bold text-primary">
                         {developer.fullName
                           ?.split(" ")
                           .map((n) => n[0])
                           .join("")}
                       </span>
                     </div>
-                    <div className="flex-1">
-                      <CardTitle className="text-2xl mb-1">{developer.fullName}</CardTitle>
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                    <div className="flex-1 min-w-0">
+                      <CardTitle className="text-xl sm:text-2xl mb-1 break-words">{developer.fullName}</CardTitle>
+                      <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
                         {developer.location && (
                           <span className="flex items-center gap-1">
                             <MapPin className="h-4 w-4" />

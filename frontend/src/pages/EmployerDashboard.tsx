@@ -136,7 +136,7 @@ const EmployerDashboard = () => {
           {/* Header */}
           <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
             <div>
-              <h1 className="text-3xl font-heading font-bold">Welcome, {user?.fullName}</h1>
+              <h1 className="text-xl sm:text-3xl font-heading font-bold">Welcome, {user?.fullName}</h1>
               <p className="text-muted-foreground">Employer Dashboard</p>
             </div>
             <div className="flex gap-2 flex-wrap">

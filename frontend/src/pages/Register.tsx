@@ -167,7 +167,12 @@ const Register = () => {
                   />
                 </div>
                 <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? "Sending code…" : "Send Verification Code"}
+                  {loading ? (
+                    <span className="flex items-center gap-2">
+                      <span className="animate-spin inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full" />
+                      Sending code… (may take a moment)
+                    </span>
+                  ) : "Send Verification Code"}
                 </Button>
               </form>
             )}

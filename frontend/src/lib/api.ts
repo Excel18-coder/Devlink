@@ -12,15 +12,25 @@ const getToken = () => localStorage.getItem("accessToken");
 export const api = async <T>(endpoint: string, options: RequestOptions = {}): Promise<T> => {
   const { method = "GET", body, headers = {} } = options;
   const token = getToken();
-  const res = await fetch(`${API_BASE}${endpoint}`, {
-    method,
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...headers
-    },
-    body: body ? JSON.stringify(body) : undefined
-  });
+
+  // 60 s timeout — handles Render free-tier cold starts
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 60_000);
+
+  const doFetch = (tok?: string) =>
+    fetch(`${API_BASE}${endpoint}`, {
+      method,
+      signal: controller.signal,
+      headers: {
+        "Content-Type": "application/json",
+        ...(tok ? { Authorization: `Bearer ${tok}` } : {}),
+        ...headers,
+      },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+
+  try {
+  const res = await doFetch(token ?? undefined);
 
   if (res.status === 401) {
     // Try refresh
@@ -29,21 +39,12 @@ export const api = async <T>(endpoint: string, options: RequestOptions = {}): Pr
       const refreshRes = await fetch(`${API_BASE}/auth/refresh`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ refreshToken })
+        body: JSON.stringify({ refreshToken }),
       });
       if (refreshRes.ok) {
         const data = await refreshRes.json();
         localStorage.setItem("accessToken", data.accessToken);
-        // Retry original request
-        const retryRes = await fetch(`${API_BASE}${endpoint}`, {
-          method,
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${data.accessToken}`,
-            ...headers
-          },
-          body: body ? JSON.stringify(body) : undefined
-        });
+        const retryRes = await doFetch(data.accessToken);
         if (!retryRes.ok) {
           const err = await retryRes.json();
           throw new Error(err.message || "Request failed");
@@ -62,6 +63,17 @@ export const api = async <T>(endpoint: string, options: RequestOptions = {}): Pr
     throw new Error(err.message || "Request failed");
   }
   return res.json();
+  } catch (err) {
+    if ((err as Error).name === "AbortError") {
+      throw new Error("The server is taking too long to respond. Please try again.");
+    }
+    if (err instanceof TypeError && err.message === "Failed to fetch") {
+      throw new Error("Unable to reach the server. Check your connection and try again.");
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
 };
 
 export const uploadFile = async <T = unknown>(endpoint: string, file: File, fieldName = "file"): Promise<T> => {

@@ -8,6 +8,9 @@ const transporter = nodemailer.createTransport({
     user: env.smtpUser,
     pass: env.smtpPass, // Use a Gmail App Password, NOT your regular password
   },
+  connectionTimeout: 10_000,  // fail fast if SMTP unreachable
+  greetingTimeout: 10_000,
+  socketTimeout: 15_000,
 });
 
 export async function sendVerificationEmail(email: string, otp: string): Promise<void> {

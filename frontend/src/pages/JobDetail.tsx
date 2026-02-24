@@ -168,7 +168,15 @@ const JobDetail = () => {
               <Card>
                 <CardContent className="pt-6">
                   {user?.role === "developer" ? (
-                    applied ? (
+                    job.status === "closed" ? (
+                      <div className="text-center space-y-2">
+                        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-destructive/10 border border-destructive/20 text-destructive text-xs font-semibold">
+                          <span className="w-1.5 h-1.5 rounded-full bg-destructive" />
+                          Position Filled
+                        </div>
+                        <p className="text-xs text-muted-foreground">This job is no longer accepting applications.</p>
+                      </div>
+                    ) : applied ? (
                       <Button disabled className="w-full">
                         Applied
                       </Button>

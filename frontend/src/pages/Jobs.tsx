@@ -19,6 +19,7 @@ interface Job {
   jobType: string;
   requiredSkills: string[];
   createdAt: string;
+  status: string;
 }
 
 const typeColor: Record<string, string> = {
@@ -107,11 +108,16 @@ const Jobs = () => {
                 <Link key={job.id} to={`/jobs/${job.id}`}>
                     <div className="bg-card border border-border rounded-xl p-4 sm:p-6 card-elevated flex flex-col lg:flex-row lg:items-center gap-4 hover:border-primary/50 transition-colors">
                     <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
+                      <div className="flex items-center gap-3 mb-2 flex-wrap">
                         <h3 className="font-heading font-semibold text-card-foreground text-lg">{job.title}</h3>
                         <span className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${typeColor[job.jobType] || ""}`}>
                           {job.jobType}
                         </span>
+                        {job.status === "closed" && (
+                          <span className="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-destructive/10 text-destructive border border-destructive/20">
+                            Position Filled
+                          </span>
+                        )}
                       </div>
                       <p className="text-sm text-muted-foreground mb-3">{job.companyName}</p>
                       <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground mb-3">

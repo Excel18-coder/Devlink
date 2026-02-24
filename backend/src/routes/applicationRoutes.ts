@@ -15,6 +15,11 @@ router.post("/:jobId", requireAuth, requireRole("developer"), validate(createApp
   const { coverLetter } = req.body;
   const jobId = req.params.jobId;
 
+  const job = await Job.findById(jobId);
+  if (!job) return res.status(404).json({ message: "Job not found" });
+  if (job.status === "closed") return res.status(400).json({ message: "This position has been filled and is no longer accepting applications" });
+  if (job.status === "paused") return res.status(400).json({ message: "This job is currently paused and not accepting applications" });
+
   const existing = await Application.findOne({ jobId, developerId: req.user!.id });
   if (existing) return res.status(400).json({ message: "Already applied" });
 
@@ -90,6 +95,15 @@ router.patch("/:id/status", requireAuth, requireRole("employer"), async (req: Au
   if (!job || job.employerId.toString() !== req.user!.id) return res.status(403).json({ message: "Forbidden" });
 
   await Application.findByIdAndUpdate(req.params.id, { status });
+  // When a developer is accepted: close the job so no new applications
+  // are taken, and reject every other open/shortlisted application
+  if (status === "accepted") {
+    await Job.findByIdAndUpdate(app.jobId, { status: "closed" });
+    await Application.updateMany(
+      { jobId: app.jobId, _id: { $ne: app._id }, status: { $in: ["submitted", "shortlisted"] } },
+      { status: "rejected" }
+    );
+  }
   return res.json({ message: "Status updated" });
 });
 

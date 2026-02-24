@@ -38,8 +38,20 @@ interface ShowcaseDetail {
 }
 
 const categoryLabel: Record<string, string> = {
-  web: "Web", mobile: "Mobile", api: "API / Backend",
-  data: "Data", ai: "AI / ML", design: "Design", other: "Other"
+  fintech:     "Fintech",
+  agritech:    "Agritech",
+  medtech:     "Medtech",
+  biotech:     "Biotech",
+  ecommerce:   "E-commerce",
+  climatetech: "Climate Tech",
+  engineering: "Engineering",
+  edtech:      "Edtech",
+  proptech:    "Proptech",
+  logistics:   "Logistics",
+  ai:          "AI / ML",
+  web:         "Web",
+  mobile:      "Mobile",
+  other:       "Other"
 };
 
 const ShowcaseDetail = () => {

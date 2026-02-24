@@ -831,12 +831,19 @@ const DeveloperDashboard = () => {
                     <Select value={showcaseForm.category} onValueChange={(v) => setShowcaseForm((f) => ({ ...f, category: v }))}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="fintech">Fintech</SelectItem>
+                        <SelectItem value="agritech">Agritech</SelectItem>
+                        <SelectItem value="medtech">Medtech</SelectItem>
+                        <SelectItem value="biotech">Biotech</SelectItem>
+                        <SelectItem value="ecommerce">E-commerce</SelectItem>
+                        <SelectItem value="climatetech">Climate Tech</SelectItem>
+                        <SelectItem value="engineering">Engineering</SelectItem>
+                        <SelectItem value="edtech">Edtech</SelectItem>
+                        <SelectItem value="proptech">Proptech</SelectItem>
+                        <SelectItem value="logistics">Logistics</SelectItem>
+                        <SelectItem value="ai">AI / ML</SelectItem>
                         <SelectItem value="web">Web</SelectItem>
                         <SelectItem value="mobile">Mobile</SelectItem>
-                        <SelectItem value="api">API / Backend</SelectItem>
-                        <SelectItem value="data">Data</SelectItem>
-                        <SelectItem value="ai">AI / ML</SelectItem>
-                        <SelectItem value="design">Design</SelectItem>
                         <SelectItem value="other">Other</SelectItem>
                       </SelectContent>
                     </Select>

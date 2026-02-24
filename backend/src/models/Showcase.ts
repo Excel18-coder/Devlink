@@ -9,7 +9,7 @@ export interface IShowcase extends Document {
   projectUrl?: string;
   repoUrl?: string;
   imageUrl?: string;
-  category: "web" | "mobile" | "api" | "data" | "ai" | "design" | "other";
+  category: "fintech" | "agritech" | "medtech" | "biotech" | "ecommerce" | "climatetech" | "engineering" | "edtech" | "proptech" | "logistics" | "ai" | "web" | "mobile" | "other";
   lookingFor: "employers" | "investors" | "both";
   status: "active" | "draft";
   likedBy: Types.ObjectId[];
@@ -29,7 +29,7 @@ const showcaseSchema = new Schema<IShowcase>(
     imageUrl: { type: String },
     category: {
       type: String,
-      enum: ["web", "mobile", "api", "data", "ai", "design", "other"],
+      enum: ["fintech", "agritech", "medtech", "biotech", "ecommerce", "climatetech", "engineering", "edtech", "proptech", "logistics", "ai", "web", "mobile", "other"],
       default: "web"
     },
     lookingFor: {

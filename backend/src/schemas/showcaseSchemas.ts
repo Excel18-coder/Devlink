@@ -7,7 +7,7 @@ export const createShowcaseSchema = z.object({
   techStack: z.array(z.string().min(1)).min(1, "Add at least one technology").max(20),
   projectUrl: z.string().url("Live demo URL must be a valid URL (include https://)").optional().or(z.literal("")),
   repoUrl: z.string().url("Repository URL must be a valid URL (include https://)").optional().or(z.literal("")),
-  category: z.enum(["web", "mobile", "api", "data", "ai", "design", "other"]).default("web"),
+  category: z.enum(["fintech", "agritech", "medtech", "biotech", "ecommerce", "climatetech", "engineering", "edtech", "proptech", "logistics", "ai", "web", "mobile", "other"]).default("web"),
   lookingFor: z.enum(["employers", "investors", "both"]).default("both"),
   status: z.enum(["active", "draft"]).default("active")
 });

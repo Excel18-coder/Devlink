@@ -35,13 +35,20 @@ interface ShowcaseResponse {
 }
 
 const categoryColors: Record<string, string> = {
-  web: "bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300",
-  mobile: "bg-purple-100 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300",
-  api: "bg-yellow-100 text-yellow-700 dark:bg-yellow-950/40 dark:text-yellow-300",
-  data: "bg-orange-100 text-orange-700 dark:bg-orange-950/40 dark:text-orange-300",
-  ai: "bg-pink-100 text-pink-700 dark:bg-pink-950/40 dark:text-pink-300",
-  design: "bg-teal-100 text-teal-700 dark:bg-teal-950/40 dark:text-teal-300",
-  other: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300"
+  fintech:     "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300",
+  agritech:    "bg-lime-100 text-lime-700 dark:bg-lime-950/40 dark:text-lime-300",
+  medtech:     "bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-300",
+  biotech:     "bg-pink-100 text-pink-700 dark:bg-pink-950/40 dark:text-pink-300",
+  ecommerce:   "bg-orange-100 text-orange-700 dark:bg-orange-950/40 dark:text-orange-300",
+  climatetech: "bg-teal-100 text-teal-700 dark:bg-teal-950/40 dark:text-teal-300",
+  engineering: "bg-slate-100 text-slate-700 dark:bg-slate-950/40 dark:text-slate-300",
+  edtech:      "bg-sky-100 text-sky-700 dark:bg-sky-950/40 dark:text-sky-300",
+  proptech:    "bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300",
+  logistics:   "bg-indigo-100 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300",
+  ai:          "bg-violet-100 text-violet-700 dark:bg-violet-950/40 dark:text-violet-300",
+  web:         "bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300",
+  mobile:      "bg-purple-100 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300",
+  other:       "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300"
 };
 
 const lookingForLabel: Record<string, { label: string; color: string }> = {
@@ -113,12 +120,19 @@ const Showcase = () => {
               <SelectTrigger className="w-full sm:w-40"><SelectValue placeholder="Category" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All categories</SelectItem>
+                <SelectItem value="fintech">Fintech</SelectItem>
+                <SelectItem value="agritech">Agritech</SelectItem>
+                <SelectItem value="medtech">Medtech</SelectItem>
+                <SelectItem value="biotech">Biotech</SelectItem>
+                <SelectItem value="ecommerce">E-commerce</SelectItem>
+                <SelectItem value="climatetech">Climate Tech</SelectItem>
+                <SelectItem value="engineering">Engineering</SelectItem>
+                <SelectItem value="edtech">Edtech</SelectItem>
+                <SelectItem value="proptech">Proptech</SelectItem>
+                <SelectItem value="logistics">Logistics</SelectItem>
+                <SelectItem value="ai">AI / ML</SelectItem>
                 <SelectItem value="web">Web</SelectItem>
                 <SelectItem value="mobile">Mobile</SelectItem>
-                <SelectItem value="api">API / Backend</SelectItem>
-                <SelectItem value="data">Data</SelectItem>
-                <SelectItem value="ai">AI / ML</SelectItem>
-                <SelectItem value="design">Design</SelectItem>
                 <SelectItem value="other">Other</SelectItem>
               </SelectContent>
             </Select>

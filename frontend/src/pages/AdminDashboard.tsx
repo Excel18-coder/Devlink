@@ -12,7 +12,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { api } from "@/lib/api";
 import { Users, Briefcase, DollarSign, AlertTriangle, Settings, ScrollText, TrendingUp, RefreshCw, Trash2, ShieldCheck, Save, RotateCcw, Building2, CreditCard, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import {
+  LineChart, Line, AreaChart, Area, BarChart, Bar,
+  PieChart, Pie, Cell, Legend,
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
+} from "recharts";
 
 interface Analytics {
   totalUsers: number;
@@ -20,7 +24,17 @@ interface Analytics {
   totalEmployers: number;
   openJobs: number;
   activeContracts: number;
+  totalApplications: number;
+  showcaseCount: number;
+  totalEscrow: number;
+  totalPaidOut: number;
+  totalRevenue: number;
   userGrowth: { month: string; users: number }[];
+  contractGrowth: { month: string; contracts: number; value: number }[];
+  contractsByStatus: { active: number; completed: number; cancelled: number; disputed: number };
+  jobsByStatus: { open: number; closed: number; paused: number };
+  jobsByType: { remote: number; contract: number; onsite: number };
+  usersByRole: { developer: number; employer: number; admin: number };
   recentUsers: { id: string; email: string; fullName: string; role: string; createdAt: string }[];
   recentJobs: { id: string; title: string; status: string; createdAt: string }[];
 }
@@ -234,6 +248,14 @@ const AdminDashboard = () => {
     } catch { toast({ title: "Failed to delete user", variant: "destructive" }); }
   };
 
+  const handleRoleChange = async (userId: string, role: string) => {
+    try {
+      await api(`/admin/users/${userId}/role`, { method: "PATCH", body: { role } });
+      toast({ title: "User role updated" });
+      fetchUsers();
+    } catch { toast({ title: "Failed to update role", variant: "destructive" }); }
+  };
+
   // Actions — jobs
   const handleJobStatus = async (jobId: string, status: string) => {
     try {
@@ -397,59 +419,247 @@ const AdminDashboard = () => {
 
             {/* ─── OVERVIEW ─────────────────────────────────────────────────── */}
             <TabsContent value="overview" className="space-y-6">
-              {/* Stat cards — live */}
-              <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+
+              {/* ── 6 KPI stat cards ─────────────────────────────────────────── */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
                 <Card>
-                  <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-                    <Users className="h-4 w-4 text-muted-foreground" />
+                  <CardHeader className="flex flex-row items-center justify-between pb-1 pt-4 px-4">
+                    <CardTitle className="text-xs font-medium text-muted-foreground">Total Users</CardTitle>
+                    <Users className="h-3.5 w-3.5 text-muted-foreground" />
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="px-4 pb-4">
                     <div className="text-2xl font-bold">{displayStats.totalUsers.toLocaleString()}</div>
-                    <p className="text-xs text-muted-foreground">{analytics?.totalDevelopers} devs · {analytics?.totalEmployers} employers</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{analytics?.usersByRole?.developer ?? 0}d · {analytics?.usersByRole?.employer ?? 0}e</p>
                   </CardContent>
                 </Card>
                 <Card>
-                  <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-sm font-medium">Open Jobs</CardTitle>
-                    <Briefcase className="h-4 w-4 text-muted-foreground" />
+                  <CardHeader className="flex flex-row items-center justify-between pb-1 pt-4 px-4">
+                    <CardTitle className="text-xs font-medium text-muted-foreground">Open Jobs</CardTitle>
+                    <Briefcase className="h-3.5 w-3.5 text-muted-foreground" />
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="px-4 pb-4">
                     <div className="text-2xl font-bold">{displayStats.openJobs.toLocaleString()}</div>
+                    <p className="text-xs text-muted-foreground mt-0.5">{analytics?.jobsByStatus?.paused ?? 0} paused</p>
                   </CardContent>
                 </Card>
                 <Card>
-                  <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-sm font-medium">Active Contracts</CardTitle>
-                    <ShieldCheck className="h-4 w-4 text-muted-foreground" />
+                  <CardHeader className="flex flex-row items-center justify-between pb-1 pt-4 px-4">
+                    <CardTitle className="text-xs font-medium text-muted-foreground">Active Contracts</CardTitle>
+                    <ShieldCheck className="h-3.5 w-3.5 text-muted-foreground" />
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="px-4 pb-4">
                     <div className="text-2xl font-bold">{displayStats.activeContracts.toLocaleString()}</div>
+                    <p className="text-xs text-muted-foreground mt-0.5">{analytics?.contractsByStatus?.completed ?? 0} completed</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between pb-1 pt-4 px-4">
+                    <CardTitle className="text-xs font-medium text-muted-foreground">In Escrow</CardTitle>
+                    <CreditCard className="h-3.5 w-3.5 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent className="px-4 pb-4">
+                    <div className="text-2xl font-bold text-primary">${(analytics?.totalEscrow ?? 0).toLocaleString()}</div>
+                    <p className="text-xs text-muted-foreground mt-0.5">active contracts</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between pb-1 pt-4 px-4">
+                    <CardTitle className="text-xs font-medium text-muted-foreground">Total Paid Out</CardTitle>
+                    <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent className="px-4 pb-4">
+                    <div className="text-2xl font-bold text-green-600">${(analytics?.totalPaidOut ?? 0).toLocaleString()}</div>
+                    <p className="text-xs text-muted-foreground mt-0.5">completed contracts</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between pb-1 pt-4 px-4">
+                    <CardTitle className="text-xs font-medium text-muted-foreground">Platform Revenue</CardTitle>
+                    <TrendingUp className="h-3.5 w-3.5 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent className="px-4 pb-4">
+                    <div className="text-2xl font-bold text-yellow-600">${(analytics?.totalRevenue ?? 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+                    <p className="text-xs text-muted-foreground mt-0.5">{analytics?.totalApplications ?? 0} applications</p>
                   </CardContent>
                 </Card>
               </div>
 
-              {/* Charts */}
-              <div className="grid lg:grid-cols-1 gap-6">
-                <Card>
+              {/* ── Row 1: User Growth (area) + User Role donut ───────────────── */}
+              <div className="grid lg:grid-cols-3 gap-6">
+                <Card className="lg:col-span-2">
                   <CardHeader>
-                    <CardTitle className="text-base">User Growth (6 months)</CardTitle>
+                    <CardTitle className="text-base">User Growth — last 6 months</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <ResponsiveContainer width="100%" height={220}>
-                      <LineChart data={analytics?.userGrowth ?? []}>
+                      <AreaChart data={analytics?.userGrowth ?? []}>
+                        <defs>
+                          <linearGradient id="ugGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%"  stopColor="hsl(var(--primary))" stopOpacity={0.35} />
+                            <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                          </linearGradient>
+                        </defs>
                         <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                         <XAxis dataKey="month" tick={{ fontSize: 12 }} />
                         <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
                         <Tooltip />
-                        <Line type="monotone" dataKey="users" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 3 }} />
-                      </LineChart>
+                        <Area type="monotone" dataKey="users" stroke="hsl(var(--primary))" fill="url(#ugGrad)" strokeWidth={2} dot={{ r: 3 }} />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">User Roles</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={220}>
+                      <PieChart>
+                        <Pie
+                          data={[
+                            { name: "Developers", value: analytics?.usersByRole?.developer ?? 0 },
+                            { name: "Employers",  value: analytics?.usersByRole?.employer  ?? 0 },
+                            { name: "Admins",     value: analytics?.usersByRole?.admin     ?? 0 },
+                          ]}
+                          cx="50%" cy="45%" innerRadius={52} outerRadius={82} paddingAngle={4} dataKey="value"
+                        >
+                          <Cell fill="hsl(var(--primary))" />
+                          <Cell fill="hsl(var(--accent))" />
+                          <Cell fill="hsl(var(--muted-foreground))" />
+                        </Pie>
+                        <Tooltip formatter={(v, n) => [v, n]} />
+                        <Legend iconType="circle" iconSize={8} />
+                      </PieChart>
                     </ResponsiveContainer>
                   </CardContent>
                 </Card>
               </div>
 
-              {/* Recent activity */}
+              {/* ── Row 2: Contract Growth bar + Job Status donut + Contract Status donut ── */}
+              <div className="grid lg:grid-cols-3 gap-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">New Contracts — last 6 months</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={200}>
+                      <BarChart data={analytics?.contractGrowth ?? []}>
+                        <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                        <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                        <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
+                        <Tooltip />
+                        <Bar dataKey="contracts" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Job Status Breakdown</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={200}>
+                      <PieChart>
+                        <Pie
+                          data={[
+                            { name: "Open",   value: analytics?.jobsByStatus?.open   ?? 0 },
+                            { name: "Paused", value: analytics?.jobsByStatus?.paused ?? 0 },
+                            { name: "Closed", value: analytics?.jobsByStatus?.closed ?? 0 },
+                          ]}
+                          cx="50%" cy="45%" innerRadius={48} outerRadius={76} paddingAngle={4} dataKey="value"
+                        >
+                          <Cell fill="#22c55e" />
+                          <Cell fill="#f59e0b" />
+                          <Cell fill="#6b7280" />
+                        </Pie>
+                        <Tooltip />
+                        <Legend iconType="circle" iconSize={8} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Contract Status Breakdown</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={200}>
+                      <PieChart>
+                        <Pie
+                          data={[
+                            { name: "Active",    value: analytics?.contractsByStatus?.active    ?? 0 },
+                            { name: "Completed", value: analytics?.contractsByStatus?.completed ?? 0 },
+                            { name: "Cancelled", value: analytics?.contractsByStatus?.cancelled ?? 0 },
+                            { name: "Disputed",  value: analytics?.contractsByStatus?.disputed  ?? 0 },
+                          ]}
+                          cx="50%" cy="45%" innerRadius={48} outerRadius={76} paddingAngle={4} dataKey="value"
+                        >
+                          <Cell fill="hsl(var(--primary))" />
+                          <Cell fill="#22c55e" />
+                          <Cell fill="#6b7280" />
+                          <Cell fill="#ef4444" />
+                        </Pie>
+                        <Tooltip />
+                        <Legend iconType="circle" iconSize={8} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* ── Row 3: Contract value area + Financial summary card ───────── */}
+              <div className="grid lg:grid-cols-2 gap-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Contract Value — last 6 months</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={200}>
+                      <AreaChart data={analytics?.contractGrowth ?? []}>
+                        <defs>
+                          <linearGradient id="cvGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%"  stopColor="#22c55e" stopOpacity={0.35} />
+                            <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                        <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                        <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
+                        <Tooltip formatter={(v) => [`$${Number(v).toLocaleString()}`, "Total Value"]} />
+                        <Area type="monotone" dataKey="value" stroke="#22c55e" fill="url(#cvGrad)" strokeWidth={2} dot={{ r: 3 }} />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Financial Overview</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2 pt-3">
+                    {[
+                      { label: "Total Escrow (active contracts)", value: `$${(analytics?.totalEscrow ?? 0).toLocaleString()}`, color: "bg-primary", textColor: "text-primary" },
+                      { label: "Total Paid Out (completed)",      value: `$${(analytics?.totalPaidOut ?? 0).toLocaleString()}`, color: "bg-green-500", textColor: "text-green-600" },
+                      { label: "Platform Revenue (commission)",   value: `$${(analytics?.totalRevenue ?? 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}`, color: "bg-yellow-400", textColor: "text-yellow-600" },
+                      { label: "Active Showcases",                value: String(analytics?.showcaseCount ?? 0), color: "bg-accent", textColor: "text-accent" },
+                      { label: "Total Applications",             value: String(analytics?.totalApplications ?? 0), color: "bg-muted-foreground", textColor: "text-muted-foreground" },
+                    ].map((row) => (
+                      <div key={row.label} className="flex items-center justify-between py-2.5 border-b last:border-0">
+                        <div className="flex items-center gap-2.5">
+                          <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${row.color}`} />
+                          <span className="text-sm">{row.label}</span>
+                        </div>
+                        <span className={`font-bold text-sm ${row.textColor}`}>{row.value}</span>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* ── Row 4: Recent sign-ups + recent jobs ─────────────────────── */}
               <div className="grid lg:grid-cols-2 gap-6">
                 <Card>
                   <CardHeader><CardTitle className="text-base">Recent Sign-ups</CardTitle></CardHeader>
@@ -483,6 +693,54 @@ const AdminDashboard = () => {
 
             {/* ─── USERS ────────────────────────────────────────────────────── */}
             <TabsContent value="users" className="space-y-4">
+              {/* User breakdown stats */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <Card>
+                  <CardContent className="pt-4 pb-3 px-4">
+                    <div className="text-2xl font-bold text-primary">{analytics?.usersByRole?.developer ?? 0}</div>
+                    <p className="text-xs text-muted-foreground mt-0.5">Developers</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-4 pb-3 px-4">
+                    <div className="text-2xl font-bold text-accent">{analytics?.usersByRole?.employer ?? 0}</div>
+                    <p className="text-xs text-muted-foreground mt-0.5">Employers</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-4 pb-3 px-4">
+                    <div className="text-2xl font-bold">{analytics?.usersByRole?.admin ?? 0}</div>
+                    <p className="text-xs text-muted-foreground mt-0.5">Admins</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-4 pb-3 px-4">
+                    <div className="text-2xl font-bold text-destructive">{users.filter(u => u.status === "suspended").length}</div>
+                    <p className="text-xs text-muted-foreground mt-0.5">Suspended</p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* User role distribution bar chart */}
+              <Card>
+                <CardHeader><CardTitle className="text-sm">Role Distribution</CardTitle></CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={140}>
+                    <BarChart layout="vertical" data={[
+                      { role: "Developers", count: analytics?.usersByRole?.developer ?? 0 },
+                      { role: "Employers",  count: analytics?.usersByRole?.employer  ?? 0 },
+                      { role: "Admins",     count: analytics?.usersByRole?.admin     ?? 0 },
+                    ]}>
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                      <XAxis type="number" tick={{ fontSize: 11 }} allowDecimals={false} />
+                      <YAxis type="category" dataKey="role" tick={{ fontSize: 11 }} width={80} />
+                      <Tooltip />
+                      <Bar dataKey="count" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-4">
                   <CardTitle>User Management</CardTitle>
@@ -540,12 +798,20 @@ const AdminDashboard = () => {
                             <td className="py-3 px-2 text-muted-foreground text-xs">{new Date(u.createdAt).toLocaleDateString()}</td>
                             <td className="py-3 px-2">
                               <div className="flex gap-1 flex-wrap">
+                                <Select value={u.role} onValueChange={(v) => handleRoleChange(u.id, v)}>
+                                  <SelectTrigger className="h-7 w-28 text-xs"><SelectValue /></SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="developer">Developer</SelectItem>
+                                    <SelectItem value="employer">Employer</SelectItem>
+                                    <SelectItem value="admin">Admin</SelectItem>
+                                  </SelectContent>
+                                </Select>
                                 {u.status === "active" ? (
-                                  <Button size="sm" variant="outline" onClick={() => handleStatusChange(u.id, "suspended")}>Suspend</Button>
+                                  <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => handleStatusChange(u.id, "suspended")}>Suspend</Button>
                                 ) : (
-                                  <Button size="sm" variant="outline" onClick={() => handleStatusChange(u.id, "active")}>Activate</Button>
+                                  <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => handleStatusChange(u.id, "active")}>Activate</Button>
                                 )}
-                                <Button size="sm" variant="destructive" onClick={() => handleDeleteUser(u.id)}>
+                                <Button size="sm" variant="destructive" className="h-7 w-7 p-0" onClick={() => handleDeleteUser(u.id)}>
                                   <Trash2 className="h-3 w-3" />
                                 </Button>
                               </div>
@@ -583,7 +849,77 @@ const AdminDashboard = () => {
             </TabsContent>
 
             {/* ─── JOBS ─────────────────────────────────────────────────────── */}
-            <TabsContent value="jobs">
+            <TabsContent value="jobs" className="space-y-4">
+              {/* Job stat cards */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <Card>
+                  <CardContent className="pt-4 pb-3 px-4">
+                    <div className="text-2xl font-bold text-green-600">{analytics?.jobsByStatus?.open ?? 0}</div>
+                    <p className="text-xs text-muted-foreground mt-0.5">Open</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-4 pb-3 px-4">
+                    <div className="text-2xl font-bold text-amber-500">{analytics?.jobsByStatus?.paused ?? 0}</div>
+                    <p className="text-xs text-muted-foreground mt-0.5">Paused</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-4 pb-3 px-4">
+                    <div className="text-2xl font-bold text-muted-foreground">{analytics?.jobsByStatus?.closed ?? 0}</div>
+                    <p className="text-xs text-muted-foreground mt-0.5">Closed</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-4 pb-3 px-4">
+                    <div className="text-2xl font-bold">{jobs.length}</div>
+                    <p className="text-xs text-muted-foreground mt-0.5">Total</p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Job distribution charts */}
+              <div className="grid sm:grid-cols-2 gap-4">
+                <Card>
+                  <CardHeader><CardTitle className="text-sm">Jobs by Status</CardTitle></CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={180}>
+                      <BarChart data={[
+                        { name: "Open",   count: analytics?.jobsByStatus?.open   ?? 0 },
+                        { name: "Paused", count: analytics?.jobsByStatus?.paused ?? 0 },
+                        { name: "Closed", count: analytics?.jobsByStatus?.closed ?? 0 },
+                      ]}>
+                        <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                        <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                        <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
+                        <Tooltip />
+                        <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+                          {["#22c55e", "#f59e0b", "#6b7280"].map((fill, i) => <Cell key={i} fill={fill} />)}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader><CardTitle className="text-sm">Jobs by Type</CardTitle></CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={180}>
+                      <BarChart data={[
+                        { name: "Remote",   count: analytics?.jobsByType?.remote   ?? 0 },
+                        { name: "Contract", count: analytics?.jobsByType?.contract ?? 0 },
+                        { name: "Onsite",   count: analytics?.jobsByType?.onsite   ?? 0 },
+                      ]}>
+                        <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                        <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                        <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
+                        <Tooltip />
+                        <Bar dataKey="count" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+              </div>
+
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-4">
                   <CardTitle>Job Management</CardTitle>
@@ -641,7 +977,35 @@ const AdminDashboard = () => {
             </TabsContent>
 
             {/* ─── CONTRACTS ────────────────────────────────────────────────── */}
-            <TabsContent value="contracts">
+            <TabsContent value="contracts" className="space-y-4">
+              {/* Financial summary */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <Card>
+                  <CardContent className="pt-4 pb-3 px-4">
+                    <div className="text-2xl font-bold text-primary">{analytics?.contractsByStatus?.active ?? 0}</div>
+                    <p className="text-xs text-muted-foreground mt-0.5">Active</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-4 pb-3 px-4">
+                    <div className="text-2xl font-bold text-green-600">{analytics?.contractsByStatus?.completed ?? 0}</div>
+                    <p className="text-xs text-muted-foreground mt-0.5">Completed</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-4 pb-3 px-4">
+                    <div className="text-2xl font-bold text-primary">${(analytics?.totalEscrow ?? 0).toLocaleString()}</div>
+                    <p className="text-xs text-muted-foreground mt-0.5">In Escrow</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-4 pb-3 px-4">
+                    <div className="text-2xl font-bold text-green-600">${(analytics?.totalPaidOut ?? 0).toLocaleString()}</div>
+                    <p className="text-xs text-muted-foreground mt-0.5">Total Paid Out</p>
+                  </CardContent>
+                </Card>
+              </div>
+
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-4">
                   <CardTitle className="flex items-center gap-2">

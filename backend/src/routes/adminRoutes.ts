@@ -5,6 +5,8 @@ import { Developer } from "../models/Developer.js";
 import { Employer } from "../models/Employer.js";
 import { Job } from "../models/Job.js";
 import { Contract } from "../models/Contract.js";
+import { Application } from "../models/Application.js";
+import { Showcase } from "../models/Showcase.js";
 import { AuditLog } from "../models/AuditLog.js";
 import { AdminConfig } from "../models/AdminConfig.js";
 import { AuthRequest, requireAuth } from "../middleware/auth.js";
@@ -16,7 +18,14 @@ router.get("/analytics", requireAuth, requireRole("admin"), async (_req: AuthReq
   const now = new Date();
   const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
 
-  const [totalUsers, totalDevelopers, totalEmployers, openJobs, activeContracts, userTrend, recentUsers, recentJobs] = await Promise.all([
+  const [
+    totalUsers, totalDevelopers, totalEmployers, openJobs, activeContracts,
+    userTrend, recentUsers, recentJobs,
+    contractsByStatusAgg, contractsTrend,
+    totalEscrowAgg, totalPaidOutAgg,
+    jobsByStatusAgg, jobsByTypeAgg,
+    usersByRoleAgg, totalApplications, showcaseCount, commissionDoc
+  ] = await Promise.all([
     User.countDocuments(),
     Developer.countDocuments(),
     Employer.countDocuments(),
@@ -28,29 +37,91 @@ router.get("/analytics", requireAuth, requireRole("admin"), async (_req: AuthReq
       { $sort: { "_id.year": 1, "_id.month": 1 } }
     ]),
     User.find().sort({ createdAt: -1 }).limit(5).select("email fullName role createdAt"),
-    Job.find().sort({ createdAt: -1 }).limit(5).select("title status createdAt")
+    Job.find().sort({ createdAt: -1 }).limit(5).select("title status createdAt"),
+    // contracts by status counts
+    Contract.aggregate([{ $group: { _id: "$status", count: { $sum: 1 } } }]),
+    // contracts monthly trend
+    Contract.aggregate([
+      { $match: { createdAt: { $gte: sixMonthsAgo } } },
+      { $group: {
+        _id: { year: { $year: "$createdAt" }, month: { $month: "$createdAt" } },
+        count: { $sum: 1 },
+        value: { $sum: "$totalAmount" }
+      }},
+      { $sort: { "_id.year": 1, "_id.month": 1 } }
+    ]),
+    // escrow = active contracts total
+    Contract.aggregate([{ $match: { status: "active" } }, { $group: { _id: null, total: { $sum: "$totalAmount" } } }]),
+    // paid out = completed contracts total
+    Contract.aggregate([{ $match: { status: "completed" } }, { $group: { _id: null, total: { $sum: "$totalAmount" } } }]),
+    Job.aggregate([{ $group: { _id: "$status", count: { $sum: 1 } } }]),
+    Job.aggregate([{ $group: { _id: "$jobType", count: { $sum: 1 } } }]),
+    User.aggregate([{ $group: { _id: "$role", count: { $sum: 1 } } }]),
+    Application.countDocuments(),
+    Showcase.countDocuments({ status: "active" }),
+    AdminConfig.findOne({ key: "commission_pct" })
   ]);
 
   const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
   const months: { label: string; year: number; month: number }[] = [];
   for (let i = 5; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
     months.push({ label: monthNames[d.getMonth()], year: d.getFullYear(), month: d.getMonth() + 1 });
   }
 
-  const userTrendMap = new Map(userTrend.map((r: { _id: { year: number; month: number }; count: number }) => [`${r._id.year}-${r._id.month}`, r.count]));
+  type TrendRow = { _id: { year: number; month: number }; count: number };
+  type TrendValueRow = TrendRow & { value: number };
+  type AggRow = { _id: string; count: number };
+
+  const userTrendMap = new Map((userTrend as TrendRow[]).map((r) => [`${r._id.year}-${r._id.month}`, r.count]));
   const userGrowth = months.map((m) => ({ month: m.label, users: userTrendMap.get(`${m.year}-${m.month}`) ?? 0 }));
 
+  const contractsTrendMap = new Map((contractsTrend as TrendValueRow[]).map((r) => [`${r._id.year}-${r._id.month}`, { count: r.count, value: r.value }]));
+  const contractGrowth = months.map((m) => {
+    const d = contractsTrendMap.get(`${m.year}-${m.month}`);
+    return { month: m.label, contracts: d?.count ?? 0, value: d?.value ?? 0 };
+  });
+
+  const contractStatusMap = new Map((contractsByStatusAgg as AggRow[]).map((r) => [r._id, r.count]));
+  const jobStatusMap     = new Map((jobsByStatusAgg  as AggRow[]).map((r) => [r._id, r.count]));
+  const jobTypeMap       = new Map((jobsByTypeAgg    as AggRow[]).map((r) => [r._id, r.count]));
+  const roleMap          = new Map((usersByRoleAgg   as AggRow[]).map((r) => [r._id, r.count]));
+
+  const totalPaidOutVal = ((totalPaidOutAgg as { total?: number }[])[0]?.total ?? 0);
+  const commissionPct   = commissionDoc ? Number(commissionDoc.value) : 0;
+  const totalRevenue    = (totalPaidOutVal * commissionPct) / 100;
+
   return res.json({
-    totalUsers,
-    totalDevelopers,
-    totalEmployers,
-    openJobs,
-    activeContracts,
+    totalUsers, totalDevelopers, totalEmployers, openJobs, activeContracts,
+    totalApplications, showcaseCount,
+    totalEscrow: ((totalEscrowAgg as { total?: number }[])[0]?.total ?? 0),
+    totalPaidOut: totalPaidOutVal,
+    totalRevenue,
     userGrowth,
+    contractGrowth,
+    contractsByStatus: {
+      active:    contractStatusMap.get("active")    ?? 0,
+      completed: contractStatusMap.get("completed") ?? 0,
+      cancelled: contractStatusMap.get("cancelled") ?? 0,
+      disputed:  contractStatusMap.get("disputed")  ?? 0,
+    },
+    jobsByStatus: {
+      open:   jobStatusMap.get("open")   ?? 0,
+      closed: jobStatusMap.get("closed") ?? 0,
+      paused: jobStatusMap.get("paused") ?? 0,
+    },
+    jobsByType: {
+      remote:   jobTypeMap.get("remote")   ?? 0,
+      contract: jobTypeMap.get("contract") ?? 0,
+      onsite:   jobTypeMap.get("onsite")   ?? 0,
+    },
+    usersByRole: {
+      developer: roleMap.get("developer") ?? 0,
+      employer:  roleMap.get("employer")  ?? 0,
+      admin:     roleMap.get("admin")     ?? 0,
+    },
     recentUsers: recentUsers.map((u) => ({ id: u._id.toString(), email: u.email, fullName: u.fullName, role: u.role, createdAt: u.createdAt })),
-    recentJobs: recentJobs.map((j) => ({ id: j._id.toString(), title: j.title, status: j.status, createdAt: j.createdAt }))
+    recentJobs:  recentJobs.map((j) => ({ id: j._id.toString(), title: j.title, status: j.status, createdAt: j.createdAt }))
   });
 });
 

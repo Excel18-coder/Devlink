@@ -37,6 +37,7 @@ const Developers = () => {
   }, []);
 
   const fetchDevelopers = async (searchTerm?: string) => {
+    setLoading(true);
     try {
       const params = searchTerm ? `?search=${encodeURIComponent(searchTerm)}` : "";
       const data = await api<Developer[]>(`/developers${params}`);
@@ -48,10 +49,7 @@ const Developers = () => {
     }
   };
 
-  const handleSearch = () => {
-    setLoading(true);
-    fetchDevelopers(search);
-  };
+  const handleSearch = () => fetchDevelopers(search);
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -138,6 +136,8 @@ const Developers = () => {
               ))}
             </div>
           )}
+
+
         </div>
       </div>
       <Footer />

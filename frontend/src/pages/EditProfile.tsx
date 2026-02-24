@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/contexts/AuthContext";
 import { api, uploadFile } from "@/lib/api";
+import { invalidateProfileCache } from "@/components/DeveloperGuard";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, CheckCircle2, Loader2, Upload, FileText, ExternalLink } from "lucide-react";
 
@@ -124,6 +125,7 @@ const EditProfile = () => {
           location: form.location || undefined
         }
       });
+      if (user?.id) invalidateProfileCache(user.id);
       toast({ title: "Profile updated!", description: "Your profile has been saved." });
       navigate(searchParams.get("next") ?? "/dashboard");
     } catch (err) {

@@ -11,8 +11,7 @@ import { uploadToCloudinary } from "../utils/cloudinaryUpload.js";
 const router = Router();
 
 router.get("/", async (req, res) => {
-  const { skill, availability, rateMin, rateMax, experience, search, page = "1", limit = "12" } = req.query;
-  const offset = (Number(page) - 1) * Number(limit);
+  const { skill, availability, rateMin, rateMax, experience, search } = req.query;
 
   const userFilter: Record<string, unknown> = { role: "developer", status: "active" };
   if (search) userFilter.fullName = new RegExp(String(search), "i");
@@ -34,7 +33,7 @@ router.get("/", async (req, res) => {
     delete devFilter.userId;
   }
 
-  const developers = await Developer.find(devFilter).sort({ ratingAvg: -1, yearsExperience: -1 }).skip(offset).limit(Number(limit));
+  const developers = await Developer.find(devFilter).sort({ ratingAvg: -1, yearsExperience: -1 });
   const userMap = new Map(activeUsers.map((u) => [u._id.toString(), u]));
 
   const mapped = developers

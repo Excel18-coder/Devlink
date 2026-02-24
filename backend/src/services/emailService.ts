@@ -1,7 +1,15 @@
 import { Resend } from "resend";
 import { env } from "../config/env.js";
 
-const resend = new Resend(env.resendApiKey);
+// Lazy-init so a missing key doesn't crash the server at startup
+let _resend: Resend | null = null;
+function getResend(): Resend {
+  if (!env.resendApiKey) {
+    throw new Error("RESEND_API_KEY environment variable is not set");
+  }
+  if (!_resend) _resend = new Resend(env.resendApiKey);
+  return _resend;
+}
 
 export async function sendVerificationEmail(email: string, otp: string): Promise<void> {
   const html = `
@@ -54,7 +62,7 @@ export async function sendVerificationEmail(email: string, otp: string): Promise
     </html>
   `;
 
-  const { error } = await resend.emails.send({
+  const { error } = await getResend().emails.send({
     from: env.resendFrom,
     to: email,
     replyTo: "excel2130@gmail.com",

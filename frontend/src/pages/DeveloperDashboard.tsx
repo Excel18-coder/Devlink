@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/lib/api";
-import { Briefcase, FileText, DollarSign, Star, MessageSquare, User, Layers, Plus, Trash2, ExternalLink, Github, Globe, Pencil, BarChart3 } from "lucide-react";
+import { Briefcase, FileText, DollarSign, Star, MessageSquare, User, Layers, Plus, Trash2, ExternalLink, Github, Globe, Pencil, BarChart3, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -305,6 +305,34 @@ const DeveloperDashboard = () => {
             </div>
             <div className="h-0.5 bg-gradient-to-r from-primary via-accent to-primary/40" />
           </div>
+
+          {/* ── Profile Incomplete Warning ───────────────────────────── */}
+          {profile && (() => {
+            const missing: string[] = [];
+            if (!profile.bio || profile.bio.trim().length < 10) missing.push("bio");
+            if (!profile.skills || profile.skills.length === 0) missing.push("skills");
+            if (!profile.yearsExperience) missing.push("years of experience");
+            if (!profile.location) missing.push("location");
+            if (!profile.rateAmount) missing.push("hourly rate");
+            if (!profile.avatarUrl) missing.push("profile photo");
+            if (missing.length === 0) return null;
+            return (
+              <div className="flex items-start gap-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 rounded-xl px-4 py-3.5 mb-6">
+                <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">Your profile is incomplete</p>
+                  <p className="text-sm text-amber-700 dark:text-amber-400 mt-0.5">
+                    Missing: <span className="font-medium">{missing.join(", ")}</span>. A complete profile gets 3× more job offers.
+                  </p>
+                </div>
+                <Link to="/profile/edit">
+                  <button className="shrink-0 text-xs font-semibold bg-amber-500 hover:bg-amber-600 text-white px-3 py-1.5 rounded-lg transition-colors">
+                    Update Now
+                  </button>
+                </Link>
+              </div>
+            );
+          })()}
 
           <Tabs defaultValue="overview" className="space-y-6">
             <TabsList className="flex-wrap h-auto gap-1 p-1 bg-muted/50 rounded-xl">

@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/lib/api";
-import { Briefcase, Users, DollarSign, FileText, Plus, MessageSquare, Trash2, CreditCard, BarChart3, Building2, Pencil } from "lucide-react";
+import { Briefcase, Users, DollarSign, FileText, Plus, MessageSquare, Trash2, CreditCard, BarChart3, Building2, Pencil, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Job {
@@ -62,17 +62,20 @@ const EmployerDashboard = () => {
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [recentApplicants, setRecentApplicants] = useState<RecentApplicant[]>([]);
   const [loading, setLoading] = useState(true);
+  const [employerProfile, setEmployerProfile] = useState<{ companyName?: string; about?: string; website?: string; location?: string; avatarUrl?: string } | null>(null);
 
   const fetchAll = useCallback(async () => {
     try {
-      const [jobsData, contractsData, applicantsData] = await Promise.all([
+      const [jobsData, contractsData, applicantsData, profileData] = await Promise.all([
         api<Job[]>(`/jobs/employer/${user?.id}`),
         api<Contract[]>("/contracts"),
-        api<RecentApplicant[]>("/applications/employer/recent")
+        api<RecentApplicant[]>("/applications/employer/recent"),
+        api<{ companyName?: string; about?: string; website?: string; location?: string; avatarUrl?: string }>(`/employers/${user?.id}`).catch(() => null)
       ]);
       setJobs(jobsData);
       setContracts(contractsData);
       setRecentApplicants(applicantsData);
+      setEmployerProfile(profileData);
     } catch (err) {
       console.error(err);
     } finally {
@@ -178,6 +181,32 @@ const EmployerDashboard = () => {
             </div>
             <div className="h-0.5 bg-gradient-to-r from-primary via-accent to-primary/40" />
           </div>
+
+          {/* ── Company Profile Incomplete Warning ─────────────────────────── */}
+          {employerProfile && (() => {
+            const missing: string[] = [];
+            if (!employerProfile.about || employerProfile.about.trim().length < 10) missing.push("company description");
+            if (!employerProfile.website) missing.push("website");
+            if (!employerProfile.location) missing.push("location");
+            if (!employerProfile.avatarUrl) missing.push("company logo");
+            if (missing.length === 0) return null;
+            return (
+              <div className="flex items-start gap-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 rounded-xl px-4 py-3.5 mb-6">
+                <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">Your company profile is incomplete</p>
+                  <p className="text-sm text-amber-700 dark:text-amber-400 mt-0.5">
+                    Missing: <span className="font-medium">{missing.join(", ")}</span>. Developers are more likely to apply to companies with complete profiles.
+                  </p>
+                </div>
+                <Link to="/company/edit">
+                  <button className="shrink-0 text-xs font-semibold bg-amber-500 hover:bg-amber-600 text-white px-3 py-1.5 rounded-lg transition-colors">
+                    Update Now
+                  </button>
+                </Link>
+              </div>
+            );
+          })()}
 
           <Tabs defaultValue="overview" className="space-y-6">
             <TabsList className="flex-wrap h-auto gap-1 p-1 bg-muted/50 rounded-xl">

@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Code2, Menu, X, MessageSquare, User } from "lucide-react";
+import { Code2, Menu, X, MessageSquare, User, LayoutDashboard } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -46,9 +46,9 @@ const Navbar = () => {
           {user ? (
             <>
               <Link to="/dashboard">
-                <Button variant="ghost" size="sm" className="text-secondary-foreground/70 hover:text-secondary-foreground hover:bg-secondary-foreground/5">
-                  <User className="h-4 w-4 mr-2" />
-                  {user.fullName || "Dashboard"}
+                <Button variant="default" size="sm" className="gap-1.5">
+                  <LayoutDashboard className="h-4 w-4" />
+                  Dashboard
                 </Button>
               </Link>
               <Button variant="outline" size="sm" onClick={handleLogout}>
@@ -119,7 +119,8 @@ const Navbar = () => {
             {user ? (
               <>
                 <Link to="/dashboard" onClick={() => setMobileOpen(false)}>
-                  <Button variant="ghost" size="sm" className="text-secondary-foreground/70 justify-start w-full h-11">
+                  <Button size="sm" className="w-full h-11 gap-2 justify-center">
+                    <LayoutDashboard className="h-4 w-4" />
                     Dashboard
                   </Button>
                 </Link>

@@ -80,7 +80,7 @@ const EMPTY_SHOWCASE_FORM = {
   techStack: "",
   projectUrl: "",
   repoUrl: "",
-  category: "web" as string,
+  category: "" as string,
   lookingFor: "both" as string,
   status: "active" as string
 };
@@ -188,6 +188,9 @@ const DeveloperDashboard = () => {
     }
     if (techArr.length === 0) {
       toast({ title: "Add at least one technology to the tech stack", variant: "destructive" }); return;
+    }
+    if (!showcaseForm.category) {
+      toast({ title: "Please select a category for your project", variant: "destructive" }); return;
     }
     if (showcaseForm.projectUrl && !/^https?:\/\//i.test(showcaseForm.projectUrl)) {
       toast({ title: "Live demo URL must start with https://", variant: "destructive" }); return;
@@ -855,24 +858,26 @@ const DeveloperDashboard = () => {
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">
-                    <Label>Category</Label>
+                    <Label>Category <span className="text-destructive">*</span></Label>
                     <Select value={showcaseForm.category} onValueChange={(v) => setShowcaseForm((f) => ({ ...f, category: v }))}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectTrigger className={!showcaseForm.category ? "text-muted-foreground" : ""}>
+                        <SelectValue placeholder="Select a category…" />
+                      </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="fintech">Fintech</SelectItem>
-                        <SelectItem value="agritech">Agritech</SelectItem>
-                        <SelectItem value="medtech">Medtech</SelectItem>
-                        <SelectItem value="biotech">Biotech</SelectItem>
-                        <SelectItem value="ecommerce">E-commerce</SelectItem>
-                        <SelectItem value="climatetech">Climate Tech</SelectItem>
-                        <SelectItem value="engineering">Engineering</SelectItem>
-                        <SelectItem value="edtech">Edtech</SelectItem>
-                        <SelectItem value="proptech">Proptech</SelectItem>
-                        <SelectItem value="logistics">Logistics</SelectItem>
-                        <SelectItem value="ai">AI / ML</SelectItem>
-                        <SelectItem value="web">Web</SelectItem>
-                        <SelectItem value="mobile">Mobile</SelectItem>
-                        <SelectItem value="other">Other</SelectItem>
+                        <SelectItem value="fintech">🏦 Fintech</SelectItem>
+                        <SelectItem value="agritech">🌾 Agritech</SelectItem>
+                        <SelectItem value="medtech">🏥 Medtech</SelectItem>
+                        <SelectItem value="biotech">🧬 Biotech</SelectItem>
+                        <SelectItem value="ecommerce">🛒 E-commerce</SelectItem>
+                        <SelectItem value="climatetech">🌍 Climate Tech</SelectItem>
+                        <SelectItem value="engineering">⚙️ Engineering</SelectItem>
+                        <SelectItem value="edtech">🎓 Edtech</SelectItem>
+                        <SelectItem value="proptech">🏠 Proptech</SelectItem>
+                        <SelectItem value="logistics">🚚 Logistics</SelectItem>
+                        <SelectItem value="ai">🤖 AI / ML</SelectItem>
+                        <SelectItem value="web">🌐 Web</SelectItem>
+                        <SelectItem value="mobile">📱 Mobile</SelectItem>
+                        <SelectItem value="other">📦 Other</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

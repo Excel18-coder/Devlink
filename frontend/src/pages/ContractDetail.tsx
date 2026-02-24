@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { api, apiFormData } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle, Clock, DollarSign, AlertCircle, ExternalLink, Download, Upload, CreditCard, Pencil, PackageCheck, ArrowLeft } from "lucide-react";
+import { CheckCircle, Clock, DollarSign, AlertCircle, ExternalLink, Download, Upload, CreditCard, Pencil, PackageCheck, ArrowLeft, XCircle, Trash2 } from "lucide-react";
 
 interface DeveloperPaymentDetails {
   method: "bank_transfer" | "mobile_money" | "other";
@@ -64,9 +64,16 @@ const ContractDetail = () => {
   const [savingPayment, setSavingPayment] = useState(false);
   const [editingPayment, setEditingPayment] = useState(false);
   const [completing, setCompleting] = useState(false);
+  const [terminating, setTerminating] = useState(false);
+  const [terminateReason, setTerminateReason] = useState("");
+  const [showTerminateConfirm, setShowTerminateConfirm] = useState(false);
   const [addingMilestone, setAddingMilestone] = useState(false);
   const [showAddMilestone, setShowAddMilestone] = useState(false);
   const [addMilestoneForm, setAddMilestoneForm] = useState({ title: "", amount: "", dueDate: "" });
+  const [editingMilestoneId, setEditingMilestoneId] = useState<string | null>(null);
+  const [editMilestoneForm, setEditMilestoneForm] = useState({ title: "", amount: "", dueDate: "" });
+  const [savingMilestoneEdit, setSavingMilestoneEdit] = useState(false);
+  const [deletingMilestoneId, setDeletingMilestoneId] = useState<string | null>(null);
 
   // Payment details form (developer)
   const [paymentForm, setPaymentForm] = useState({ method: "", accountName: "", details: "" });
@@ -208,6 +215,67 @@ const ContractDetail = () => {
     }
   };
 
+  const handleTerminate = async () => {
+    setTerminating(true);
+    try {
+      await api(`/contracts/${id}/terminate`, {
+        method: "POST",
+        body: { reason: terminateReason.trim() }
+      });
+      toast({ title: "Contract terminated" });
+      setShowTerminateConfirm(false);
+      setTerminateReason("");
+      fetchContract();
+    } catch (err) {
+      toast({ title: (err as Error).message, variant: "destructive" });
+    } finally {
+      setTerminating(false);
+    }
+  };
+
+  const openEditMilestone = (ms: Milestone) => {
+    setEditingMilestoneId(ms.id);
+    setEditMilestoneForm({
+      title: ms.title,
+      amount: String(ms.amount),
+      dueDate: ms.dueDate ? ms.dueDate.split("T")[0] : ""
+    });
+  };
+
+  const handleSaveMilestoneEdit = async (msId: string) => {
+    const amount = Number(editMilestoneForm.amount);
+    if (!editMilestoneForm.title.trim()) { toast({ title: "Title is required", variant: "destructive" }); return; }
+    if (isNaN(amount) || amount <= 0) { toast({ title: "Amount must be a positive number", variant: "destructive" }); return; }
+    setSavingMilestoneEdit(true);
+    try {
+      await api(`/contracts/${id}/milestones/${msId}`, {
+        method: "PATCH",
+        body: { title: editMilestoneForm.title.trim(), amount, dueDate: editMilestoneForm.dueDate || undefined }
+      });
+      toast({ title: "Milestone updated" });
+      setEditingMilestoneId(null);
+      fetchContract();
+    } catch (err) {
+      toast({ title: (err as Error).message, variant: "destructive" });
+    } finally {
+      setSavingMilestoneEdit(false);
+    }
+  };
+
+  const handleDeleteMilestone = async (msId: string) => {
+    if (!confirm("Delete this milestone? This cannot be undone.")) return;
+    setDeletingMilestoneId(msId);
+    try {
+      await api(`/contracts/${id}/milestones/${msId}`, { method: "DELETE" });
+      toast({ title: "Milestone deleted" });
+      fetchContract();
+    } catch (err) {
+      toast({ title: (err as Error).message, variant: "destructive" });
+    } finally {
+      setDeletingMilestoneId(null);
+    }
+  };
+
   const handleComplete = async () => {
     if (!confirm("Mark this contract as complete? This cannot be undone.")) return;
     setCompleting(true);
@@ -301,9 +369,35 @@ const ContractDetail = () => {
                   </div>
                 )}
                 {contract.status === "active" && (isEmployer || isDeveloper) && (
-                  <Button variant="destructive" size="sm" onClick={handleDispute}>
-                    <AlertCircle className="h-4 w-4 mr-1" /> Raise Dispute
-                  </Button>
+                  <div className="flex flex-wrap gap-2">
+                    <Button variant="destructive" size="sm" onClick={handleDispute}>
+                      <AlertCircle className="h-4 w-4 mr-1" /> Raise Dispute
+                    </Button>
+                    {isEmployer && !showTerminateConfirm && (
+                      <Button variant="outline" size="sm" className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={() => setShowTerminateConfirm(true)}>
+                        <XCircle className="h-4 w-4 mr-1" /> Terminate Contract
+                      </Button>
+                    )}
+                  </div>
+                )}
+                {isEmployer && showTerminateConfirm && contract.status === "active" && (
+                  <div className="mt-3 p-4 border border-destructive/40 rounded-lg bg-destructive/5 space-y-3">
+                    <p className="text-sm font-semibold text-destructive">⚠ Terminate this contract?</p>
+                    <p className="text-xs text-muted-foreground">This will cancel the contract. This action cannot be undone.</p>
+                    <Textarea
+                      placeholder="Reason for termination (optional)"
+                      value={terminateReason}
+                      onChange={(e) => setTerminateReason(e.target.value)}
+                      rows={2}
+                      className="text-sm"
+                    />
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="destructive" onClick={handleTerminate} disabled={terminating}>
+                        {terminating ? "Terminating…" : "Confirm Terminate"}
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => { setShowTerminateConfirm(false); setTerminateReason(""); }}>Cancel</Button>
+                    </div>
+                  </div>
                 )}
                 {isEmployer && contract.status === "active" && allDelivered && (
                   <div className="mt-3 p-3 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-900 rounded-lg space-y-2">
@@ -576,9 +670,66 @@ const ContractDetail = () => {
                               </div>
                             )}
 
-                            {/* Employer: pending — waiting */}
+                            {/* Employer: pending — waiting + edit/delete controls */}
                             {isEmployer && ms.status === "pending" && (
-                              <p className="text-sm text-muted-foreground">Awaiting developer submission…</p>
+                              <div className="space-y-3">
+                                {editingMilestoneId === ms.id ? (
+                                  <div className="space-y-3 border rounded-lg p-3 bg-muted/20">
+                                    <p className="text-sm font-medium">Edit Milestone</p>
+                                    <div className="grid sm:grid-cols-2 gap-2">
+                                      <div className="space-y-1">
+                                        <Label className="text-xs">Title</Label>
+                                        <Input
+                                          value={editMilestoneForm.title}
+                                          onChange={(e) => setEditMilestoneForm((p) => ({ ...p, title: e.target.value }))}
+                                          className="h-8 text-sm"
+                                        />
+                                      </div>
+                                      <div className="space-y-1">
+                                        <Label className="text-xs">Amount ($)</Label>
+                                        <Input
+                                          type="number"
+                                          min={1}
+                                          value={editMilestoneForm.amount}
+                                          onChange={(e) => setEditMilestoneForm((p) => ({ ...p, amount: e.target.value }))}
+                                          className="h-8 text-sm"
+                                        />
+                                      </div>
+                                      <div className="space-y-1">
+                                        <Label className="text-xs">Due Date</Label>
+                                        <Input
+                                          type="date"
+                                          value={editMilestoneForm.dueDate}
+                                          onChange={(e) => setEditMilestoneForm((p) => ({ ...p, dueDate: e.target.value }))}
+                                          className="h-8 text-sm"
+                                        />
+                                      </div>
+                                    </div>
+                                    <div className="flex gap-2">
+                                      <Button size="sm" onClick={() => handleSaveMilestoneEdit(ms.id)} disabled={savingMilestoneEdit}>
+                                        {savingMilestoneEdit ? "Saving…" : "Save"}
+                                      </Button>
+                                      <Button size="sm" variant="outline" onClick={() => setEditingMilestoneId(null)}>Cancel</Button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center gap-2">
+                                    <p className="text-sm text-muted-foreground flex-1">Awaiting developer submission…</p>
+                                    <Button size="sm" variant="outline" className="h-7 px-2" onClick={() => openEditMilestone(ms)}>
+                                      <Pencil className="h-3 w-3" />
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="h-7 px-2 border-destructive/50 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                                      onClick={() => handleDeleteMilestone(ms.id)}
+                                      disabled={deletingMilestoneId === ms.id}
+                                    >
+                                      <Trash2 className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                )}
+                              </div>
                             )}
 
                             {/* ── STEP 3: Developer submits final deliverables after payment ── */}
@@ -700,8 +851,8 @@ const ContractDetail = () => {
                   </div>
                 )}
 
-                {/* Employer: add new milestone */}
-                {isEmployer && contract.status === "active" && anyDelivered && (
+                {/* Employer: add new milestone — always available on active contracts */}
+                {isEmployer && contract.status === "active" && (
                   <div className="mt-5 border-t pt-4">
                     {!showAddMilestone ? (
                       <Button size="sm" variant="outline" onClick={() => setShowAddMilestone(true)}>

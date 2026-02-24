@@ -234,6 +234,89 @@ router.post("/:id/complete", requireAuth, requireRole("employer"), async (req: A
   return res.json({ message: "Contract marked as complete" });
 });
 
+// ─── Employer: terminate (cancel) an active contract ────────────────────────
+router.post("/:id/terminate", requireAuth, requireRole("employer"), async (req: AuthRequest, res: Response) => {
+  const contract = await Contract.findById(req.params.id);
+  if (!contract) return res.status(404).json({ message: "Contract not found" });
+  if (contract.employerId.toString() !== req.user!.id) return res.status(403).json({ message: "Forbidden" });
+  if (!["active", "disputed"].includes(contract.status)) {
+    return res.status(400).json({ message: "Only active or disputed contracts can be terminated" });
+  }
+
+  const { reason } = req.body;
+  await Contract.findByIdAndUpdate(req.params.id, { status: "cancelled" });
+
+  await createAuditLog({
+    actorId: req.user!.id,
+    action: "contract_terminate",
+    entity: "contract",
+    entityId: req.params.id,
+    metadata: { reason: reason?.trim() ?? "" }
+  });
+
+  return res.json({ message: "Contract terminated" });
+});
+
+// ─── Employer: edit a pending milestone ──────────────────────────────────────
+router.patch("/:id/milestones/:msId", requireAuth, requireRole("employer"), async (req: AuthRequest, res: Response) => {
+  const contract = await Contract.findById(req.params.id);
+  if (!contract) return res.status(404).json({ message: "Contract not found" });
+  if (contract.employerId.toString() !== req.user!.id) return res.status(403).json({ message: "Forbidden" });
+
+  const milestone = contract.milestones.id(req.params.msId);
+  if (!milestone) return res.status(404).json({ message: "Milestone not found" });
+  if (milestone.status !== "pending") return res.status(400).json({ message: "Only pending milestones can be edited" });
+
+  const { title, amount, dueDate } = req.body;
+  const oldAmount = milestone.amount;
+
+  if (title?.trim()) milestone.title = title.trim();
+  if (amount !== undefined) {
+    const parsed = Number(amount);
+    if (isNaN(parsed) || parsed <= 0) return res.status(400).json({ message: "Amount must be a positive number" });
+    milestone.amount = parsed;
+    contract.totalAmount = contract.totalAmount - oldAmount + parsed;
+  }
+  if (dueDate !== undefined) milestone.dueDate = dueDate ? new Date(dueDate) : undefined;
+
+  await contract.save();
+
+  await createAuditLog({
+    actorId: req.user!.id,
+    action: "milestone_edit",
+    entity: "milestone",
+    entityId: req.params.msId,
+    metadata: { contractId: req.params.id }
+  });
+
+  return res.json({ message: "Milestone updated", totalAmount: contract.totalAmount });
+});
+
+// ─── Employer: delete a pending milestone ────────────────────────────────────
+router.delete("/:id/milestones/:msId", requireAuth, requireRole("employer"), async (req: AuthRequest, res: Response) => {
+  const contract = await Contract.findById(req.params.id);
+  if (!contract) return res.status(404).json({ message: "Contract not found" });
+  if (contract.employerId.toString() !== req.user!.id) return res.status(403).json({ message: "Forbidden" });
+
+  const milestone = contract.milestones.id(req.params.msId);
+  if (!milestone) return res.status(404).json({ message: "Milestone not found" });
+  if (milestone.status !== "pending") return res.status(400).json({ message: "Only pending milestones can be deleted" });
+
+  contract.totalAmount -= milestone.amount;
+  milestone.deleteOne();
+  await contract.save();
+
+  await createAuditLog({
+    actorId: req.user!.id,
+    action: "milestone_delete",
+    entity: "milestone",
+    entityId: req.params.msId,
+    metadata: { contractId: req.params.id }
+  });
+
+  return res.json({ message: "Milestone deleted", totalAmount: contract.totalAmount });
+});
+
 // ─── Dispute contract ────────────────────────────────────────────────────────
 router.post("/:id/dispute", requireAuth, async (req: AuthRequest, res: Response) => {
   const contract = await Contract.findById(req.params.id);

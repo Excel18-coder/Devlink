@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/lib/api";
-import { Briefcase, Users, DollarSign, FileText, Plus, MessageSquare, Trash2, CreditCard, BarChart3, Building2 } from "lucide-react";
+import { Briefcase, Users, DollarSign, FileText, Plus, MessageSquare, Trash2, CreditCard, BarChart3, Building2, Pencil } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Job {
@@ -370,6 +370,9 @@ const EmployerDashboard = () => {
                           <div className="flex gap-2 flex-wrap">
                             <Link to={`/jobs/${j.id}/applicants`}>
                               <Button size="sm" variant="outline"><Users className="h-3 w-3 mr-1" />Applicants</Button>
+                            </Link>
+                            <Link to={`/jobs/${j.id}/edit`}>
+                              <Button size="sm" variant="outline"><Pencil className="h-3 w-3 mr-1" />Edit</Button>
                             </Link>
                             <Select value={j.status} onValueChange={(v) => handleJobStatus(j.id, v)}>
                               <SelectTrigger className="w-28 h-8 text-xs"><SelectValue /></SelectTrigger>

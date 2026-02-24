@@ -24,6 +24,7 @@ const CreateContract = lazy(() => import("./pages/CreateContract"));
 const Messages = lazy(() => import("./pages/Messages"));
 const Showcase = lazy(() => import("./pages/Showcase"));
 const ShowcaseDetail = lazy(() => import("./pages/ShowcaseDetail"));
+const EditJob = lazy(() => import("./pages/EditJob"));
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 60000, retry: 1 } },
@@ -49,6 +50,7 @@ const App = () => (
             <Route path="/jobs/create" element={<CreateJob />} />
             <Route path="/jobs/:id" element={<JobDetail />} />
             <Route path="/jobs/:id/applicants" element={<JobApplicants />} />
+            <Route path="/jobs/:id/edit" element={<EditJob />} />
             <Route path="/developers" element={<Developers />} />
             <Route path="/developers/:id" element={<DeveloperProfile />} />
             <Route path="/login" element={<Login />} />

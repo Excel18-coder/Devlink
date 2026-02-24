@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { api } from "@/lib/api";
-import { Search, ExternalLink, Github, Heart, Star, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, ExternalLink, Github, Heart, Star, ChevronLeft, ChevronRight, Layers } from "lucide-react";
 
 interface ShowcaseItem {
   id: string;
@@ -146,9 +146,24 @@ const Showcase = () => {
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
             </div>
           ) : data?.showcases.length === 0 ? (
-            <div className="text-center py-20">
-              <p className="text-muted-foreground text-lg">No showcases found.</p>
-              <p className="text-sm text-muted-foreground mt-1">Be the first to showcase your product!</p>
+            <div className="flex flex-col items-center justify-center py-24 px-4 text-center">
+              <div className="h-20 w-20 rounded-2xl bg-muted/60 border border-border flex items-center justify-center mb-5">
+                <Layers className="h-9 w-9 text-muted-foreground/40" />
+              </div>
+              <h3 className="text-xl font-semibold mb-2">No products found</h3>
+              <p className="text-muted-foreground max-w-sm">
+                {search || category !== "all" || lookingFor !== "all"
+                  ? "No projects match your current filters. Try adjusting your search or clearing the filters."
+                  : "No products have been showcased yet. Be the first to share your work with the world!"}
+              </p>
+              {(search || category !== "all" || lookingFor !== "all") && (
+                <button
+                  onClick={() => { setSearch(""); setCategory("all"); setLookingFor("all"); setPage(1); }}
+                  className="mt-5 text-sm text-primary hover:underline font-medium"
+                >
+                  Clear all filters
+                </button>
+              )}
             </div>
           ) : (
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">

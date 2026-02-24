@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/lib/api";
-import { Briefcase, FileText, DollarSign, Star, MessageSquare, User, Layers, Plus, Trash2, ExternalLink, Github, Globe, Pencil } from "lucide-react";
+import { Briefcase, FileText, DollarSign, Star, MessageSquare, User, Layers, Plus, Trash2, ExternalLink, Github, Globe, Pencil, BarChart3 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -256,8 +256,9 @@ const DeveloperDashboard = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      <div className="min-h-screen flex flex-col items-center justify-center gap-3 bg-background">
+        <div className="h-10 w-10 rounded-full border-[3px] border-primary/20 border-t-primary animate-spin" />
+        <p className="text-sm text-muted-foreground animate-pulse">Loading your dashboard…</p>
       </div>
     );
   }
@@ -267,146 +268,207 @@ const DeveloperDashboard = () => {
       <Navbar />
       <div className="pt-24 pb-16">
         <div className="container mx-auto px-4">
-          {/* Header */}
-          <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
-            <div>
-              <h1 className="text-xl sm:text-3xl font-heading font-bold">Welcome, {user?.fullName}</h1>
-              <p className="text-muted-foreground">Developer Dashboard</p>
+          {/* ── Digital Hero Header ─────────────────────────────────── */}
+          <div className="relative rounded-2xl overflow-hidden mb-8">
+            <div className="bg-gradient-to-br from-primary via-primary/90 to-accent px-6 py-7 sm:px-8 sm:py-8 text-primary-foreground">
+              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,rgba(255,255,255,0.13),transparent_65%)] pointer-events-none" />
+              <div className="relative flex items-start justify-between flex-wrap gap-5">
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-[11px] font-semibold bg-white/15 px-2.5 py-0.5 rounded-full tracking-widest uppercase">Developer</span>
+                    {profile?.availability && (
+                      <span className="text-[11px] font-medium bg-emerald-400/20 text-emerald-200 px-2.5 py-0.5 rounded-full capitalize flex items-center gap-1.5">
+                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse inline-block" />{profile.availability}
+                      </span>
+                    )}
+                  </div>
+                  <h1 className="text-2xl sm:text-3xl font-heading font-bold tracking-tight">Hey, {user?.fullName} 👋</h1>
+                  <div className="flex flex-wrap gap-4 mt-3 text-sm text-primary-foreground/75">
+                    <span className="flex items-center gap-1.5"><FileText className="h-3.5 w-3.5" />{applications.length} application{applications.length !== 1 ? "s" : ""}</span>
+                    <span className="flex items-center gap-1.5"><Briefcase className="h-3.5 w-3.5" />{activeContracts.length} active contract{activeContracts.length !== 1 ? "s" : ""}</span>
+                    <span className="flex items-center gap-1.5"><Layers className="h-3.5 w-3.5" />{showcases.length} showcase{showcases.length !== 1 ? "s" : ""}</span>
+                    {profile?.ratingAvg ? <span className="flex items-center gap-1.5"><Star className="h-3.5 w-3.5 fill-yellow-300 text-yellow-300" />{profile.ratingAvg.toFixed(1)} rating</span> : null}
+                  </div>
+                </div>
+                <div className="flex gap-2 flex-wrap">
+                  <Link to="/messages">
+                    <Button variant="outline" size="sm" className="bg-white/10 border-white/25 text-white hover:bg-white/20 hover:text-white"><MessageSquare className="h-4 w-4 mr-1" />Messages</Button>
+                  </Link>
+                  <Link to="/profile/edit">
+                    <Button variant="outline" size="sm" className="bg-white/10 border-white/25 text-white hover:bg-white/20 hover:text-white"><User className="h-4 w-4 mr-1" />Edit Profile</Button>
+                  </Link>
+                  <Link to="/jobs">
+                    <Button size="sm" className="bg-white text-primary hover:bg-white/90 font-semibold shadow-sm"><Briefcase className="h-4 w-4 mr-1" />Browse Jobs</Button>
+                  </Link>
+                </div>
+              </div>
             </div>
-            <div className="flex gap-2 flex-wrap">
-              <Link to="/messages">
-                <Button variant="outline" size="sm"><MessageSquare className="h-4 w-4 mr-1" />Messages</Button>
-              </Link>
-              <Link to="/profile/edit">
-                <Button variant="outline" size="sm"><User className="h-4 w-4 mr-1" />Edit Profile</Button>
-              </Link>
-              <Link to="/jobs">
-                <Button size="sm"><Briefcase className="h-4 w-4 mr-1" />Browse Jobs</Button>
-              </Link>
-            </div>
+            <div className="h-0.5 bg-gradient-to-r from-primary via-accent to-primary/40" />
           </div>
 
           <Tabs defaultValue="overview" className="space-y-6">
-            <TabsList className="flex-wrap h-auto gap-1">
-              <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="applications">
-                Applications
-                <Badge variant="secondary" className="ml-1 text-xs">{applications.length}</Badge>
+            <TabsList className="flex-wrap h-auto gap-1 p-1 bg-muted/50 rounded-xl">
+              <TabsTrigger value="overview" className="flex items-center gap-1.5 rounded-lg data-[state=active]:shadow-sm"><BarChart3 className="h-3.5 w-3.5" />Overview</TabsTrigger>
+              <TabsTrigger value="applications" className="flex items-center gap-1.5 rounded-lg data-[state=active]:shadow-sm">
+                <FileText className="h-3.5 w-3.5" />Applications
+                <Badge variant="secondary" className="ml-0.5 text-xs">{applications.length}</Badge>
               </TabsTrigger>
-              <TabsTrigger value="contracts">
-                Contracts
-                {activeContracts.length > 0 && <Badge variant="secondary" className="ml-1 text-xs">{activeContracts.length} active</Badge>}
-                {historyContracts.length > 0 && <Badge variant="outline" className="ml-1 text-xs">{historyContracts.length} done</Badge>}
+              <TabsTrigger value="contracts" className="flex items-center gap-1.5 rounded-lg data-[state=active]:shadow-sm">
+                <Briefcase className="h-3.5 w-3.5" />Contracts
+                {activeContracts.length > 0 && <Badge variant="secondary" className="ml-0.5 text-xs">{activeContracts.length} active</Badge>}
+                {historyContracts.length > 0 && <Badge variant="outline" className="ml-0.5 text-xs">{historyContracts.length} done</Badge>}
               </TabsTrigger>
-              <TabsTrigger value="reviews">
-                Reviews
-                <Badge variant="secondary" className="ml-1 text-xs">{reviews.length}</Badge>
+              <TabsTrigger value="reviews" className="flex items-center gap-1.5 rounded-lg data-[state=active]:shadow-sm">
+                <Star className="h-3.5 w-3.5" />Reviews
+                <Badge variant="secondary" className="ml-0.5 text-xs">{reviews.length}</Badge>
               </TabsTrigger>
-              <TabsTrigger value="showcase">
-                <Layers className="h-3.5 w-3.5 mr-1" />
-                Showcase
-                <Badge variant="secondary" className="ml-1 text-xs">{showcases.length}</Badge>
+              <TabsTrigger value="showcase" className="flex items-center gap-1.5 rounded-lg data-[state=active]:shadow-sm">
+                <Layers className="h-3.5 w-3.5" />Showcase
+                <Badge variant="secondary" className="ml-0.5 text-xs">{showcases.length}</Badge>
               </TabsTrigger>
             </TabsList>
 
             {/* ── OVERVIEW ─────────────────────────────────────────────── */}
             <TabsContent value="overview" className="space-y-6">
               <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-sm font-medium">Applications</CardTitle>
-                    <FileText className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{applications.length}</div>
-                    <p className="text-xs text-muted-foreground">
-                      {applications.filter((a) => a.status === "accepted").length} accepted
-                    </p>
+                {/* Applications — blue */}
+                <Card className="border-0 shadow-sm ring-1 ring-blue-500/20 bg-gradient-to-br from-blue-500/10 to-blue-500/[0.03]">
+                  <CardContent className="pt-5 pb-4 px-5">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="h-10 w-10 rounded-xl bg-blue-500/15 flex items-center justify-center">
+                        <FileText className="h-5 w-5 text-blue-500" />
+                      </div>
+                      <span className="text-xs font-medium text-blue-500 bg-blue-500/10 px-2 py-0.5 rounded-full">
+                        {applications.filter((a) => a.status === "accepted").length} accepted
+                      </span>
+                    </div>
+                    <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">{applications.length}</div>
+                    <p className="text-sm text-muted-foreground mt-0.5">Applications</p>
                   </CardContent>
                 </Card>
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-sm font-medium">Active Contracts</CardTitle>
-                    <Briefcase className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{activeContracts.length}</div>
-                    <p className="text-xs text-muted-foreground">${pendingEarnings.toLocaleString()} pending</p>
+
+                {/* Active Contracts — violet */}
+                <Card className="border-0 shadow-sm ring-1 ring-violet-500/20 bg-gradient-to-br from-violet-500/10 to-violet-500/[0.03]">
+                  <CardContent className="pt-5 pb-4 px-5">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="h-10 w-10 rounded-xl bg-violet-500/15 flex items-center justify-center">
+                        <Briefcase className="h-5 w-5 text-violet-500" />
+                      </div>
+                      <span className="text-xs font-medium text-violet-500 bg-violet-500/10 px-2 py-0.5 rounded-full">
+                        ${pendingEarnings.toLocaleString()} pending
+                      </span>
+                    </div>
+                    <div className="text-3xl font-bold text-violet-600 dark:text-violet-400">{activeContracts.length}</div>
+                    <p className="text-sm text-muted-foreground mt-0.5">Active Contracts</p>
                   </CardContent>
                 </Card>
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-sm font-medium">Total Earned</CardTitle>
-                    <DollarSign className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">${totalEarnings.toLocaleString()}</div>
-                    <p className="text-xs text-muted-foreground">
-                      {contracts.filter((c) => c.status === "completed").length} completed
-                    </p>
+
+                {/* Total Earned — emerald */}
+                <Card className="border-0 shadow-sm ring-1 ring-emerald-500/20 bg-gradient-to-br from-emerald-500/10 to-emerald-500/[0.03]">
+                  <CardContent className="pt-5 pb-4 px-5">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="h-10 w-10 rounded-xl bg-emerald-500/15 flex items-center justify-center">
+                        <DollarSign className="h-5 w-5 text-emerald-500" />
+                      </div>
+                      <span className="text-xs font-medium text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded-full">
+                        {contracts.filter((c) => c.status === "completed").length} completed
+                      </span>
+                    </div>
+                    <div className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">${totalEarnings.toLocaleString()}</div>
+                    <p className="text-sm text-muted-foreground mt-0.5">Total Earned</p>
                   </CardContent>
                 </Card>
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-sm font-medium">Rating</CardTitle>
-                    <Star className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
+
+                {/* Rating — amber */}
+                <Card className="border-0 shadow-sm ring-1 ring-amber-500/20 bg-gradient-to-br from-amber-500/10 to-amber-500/[0.03]">
+                  <CardContent className="pt-5 pb-4 px-5">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="h-10 w-10 rounded-xl bg-amber-500/15 flex items-center justify-center">
+                        <Star className="h-5 w-5 text-amber-500" />
+                      </div>
+                      <span className="text-xs font-medium text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-full">
+                        {reviews.length} review{reviews.length !== 1 ? "s" : ""}
+                      </span>
+                    </div>
+                    <div className="text-3xl font-bold text-amber-600 dark:text-amber-400">
                       {profile?.ratingAvg ? profile.ratingAvg.toFixed(1) : "—"}
                     </div>
-                    <p className="text-xs text-muted-foreground">{reviews.length} review{reviews.length !== 1 ? "s" : ""}</p>
+                    <p className="text-sm text-muted-foreground mt-0.5">Rating</p>
                   </CardContent>
                 </Card>
               </div>
 
               <div className="grid lg:grid-cols-2 gap-6">
-                <Card>
-                  <CardHeader><CardTitle className="text-base">Recent Applications</CardTitle></CardHeader>
-                  <CardContent className="space-y-3">
-                    {applications.slice(0, 5).map((app) => (
-                      <div key={app.id} className="flex items-center justify-between">
+                <Card className="border-border/50">
+                  <CardHeader className="flex flex-row items-center justify-between pb-3">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <div className="h-7 w-7 rounded-lg bg-blue-500/15 flex items-center justify-center">
+                        <FileText className="h-3.5 w-3.5 text-blue-500" />
+                      </div>
+                      Recent Applications
+                    </CardTitle>
+                    <Link to="/jobs"><Button variant="ghost" size="sm" className="h-7 text-xs text-primary hover:text-primary">Browse Jobs →</Button></Link>
+                  </CardHeader>
+                  <CardContent className="space-y-1.5 pt-0">
+                    {applications.length === 0 ? (
+                      <div className="py-6 text-center">
+                        <p className="text-sm text-muted-foreground mb-3">No applications yet</p>
+                        <Link to="/jobs"><Button size="sm" variant="outline">Browse Jobs</Button></Link>
+                      </div>
+                    ) : applications.slice(0, 5).map((app) => (
+                      <div key={app.id} className="flex items-center justify-between p-2.5 rounded-lg hover:bg-muted/40 border-l-2 border-blue-500/40 transition-colors">
                         <div>
-                          <p className="font-medium text-sm">{app.jobTitle || "Unknown Job"}</p>
-                          <p className="text-xs text-muted-foreground">{app.companyName || "Unknown Company"}</p>
+                          <p className="font-medium text-sm leading-tight">{app.jobTitle || "Unknown Job"}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">{app.companyName || "Unknown Company"}</p>
                         </div>
-                        <Badge variant={statusColor(app.status)}>{app.status}</Badge>
+                        <Badge variant={statusColor(app.status)} className="text-xs capitalize shrink-0">{app.status}</Badge>
                       </div>
                     ))}
-                    {!applications.length && <p className="text-muted-foreground text-sm">No applications yet</p>}
-                    <Link to="/jobs">
-                      <Button variant="outline" size="sm" className="w-full mt-2">Browse Jobs</Button>
-                    </Link>
                   </CardContent>
                 </Card>
 
-                <Card>
-                  <CardHeader><CardTitle className="text-base">Active Contracts</CardTitle></CardHeader>
-                  <CardContent className="space-y-3">
-                    {activeContracts.slice(0, 5).map((c) => (
+                <Card className="border-border/50">
+                  <CardHeader className="flex flex-row items-center justify-between pb-3">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <div className="h-7 w-7 rounded-lg bg-violet-500/15 flex items-center justify-center">
+                        <Briefcase className="h-3.5 w-3.5 text-violet-500" />
+                      </div>
+                      Active Contracts
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-1.5 pt-0">
+                    {activeContracts.length === 0 ? (
+                      <div className="py-6 text-center">
+                        <p className="text-sm text-muted-foreground">No active contracts</p>
+                      </div>
+                    ) : activeContracts.slice(0, 5).map((c) => (
                       <Link
                         key={c.id}
                         to={`/contracts/${c.id}`}
-                        className="flex items-center justify-between hover:bg-muted/50 p-2 rounded"
+                        className="flex items-center justify-between p-2.5 rounded-lg hover:bg-muted/40 border-l-2 border-violet-500/40 transition-colors"
                       >
                         <div>
-                          <p className="font-medium text-sm">Contract #{c.id.slice(0, 8)}</p>
-                          <p className="text-xs text-muted-foreground">${c.totalAmount.toLocaleString()}</p>
+                          <p className="font-medium text-sm leading-tight">Contract #{c.id.slice(0, 8)}</p>
+                          <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium mt-0.5">${c.totalAmount.toLocaleString()}</p>
                         </div>
-                        <Badge variant={statusColor(c.status)}>{c.status}</Badge>
+                        <Badge variant={statusColor(c.status)} className="text-xs capitalize shrink-0">{c.status}</Badge>
                       </Link>
                     ))}
-                    {!activeContracts.length && <p className="text-muted-foreground text-sm">No active contracts</p>}
                   </CardContent>
                 </Card>
               </div>
 
               {/* Profile summary */}
               {profile && (
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between">
-                    <CardTitle className="text-base">Profile Summary</CardTitle>
-                    <Link to="/profile/edit"><Button variant="outline" size="sm">Edit</Button></Link>
+                <Card className="border-border/50">
+                  <CardHeader className="flex flex-row items-center justify-between pb-3">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center">
+                        <User className="h-3.5 w-3.5 text-primary" />
+                      </div>
+                      Profile Summary
+                    </CardTitle>
+                    <Link to="/profile/edit"><Button variant="outline" size="sm">Edit Profile</Button></Link>
                   </CardHeader>
                   <CardContent>
                     <div className="flex items-start gap-4 mb-4">

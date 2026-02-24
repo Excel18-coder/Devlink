@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/lib/api";
-import { Briefcase, Users, DollarSign, FileText, Plus, MessageSquare, Trash2, CreditCard } from "lucide-react";
+import { Briefcase, Users, DollarSign, FileText, Plus, MessageSquare, Trash2, CreditCard, BarChart3, Building2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Job {
@@ -122,8 +122,9 @@ const EmployerDashboard = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      <div className="min-h-screen flex flex-col items-center justify-center gap-3 bg-background">
+        <div className="h-10 w-10 rounded-full border-[3px] border-primary/20 border-t-primary animate-spin" />
+        <p className="text-sm text-muted-foreground animate-pulse">Loading your dashboard…</p>
       </div>
     );
   }
@@ -133,43 +134,69 @@ const EmployerDashboard = () => {
       <Navbar />
       <div className="pt-24 pb-16">
         <div className="container mx-auto px-4">
-          {/* Header */}
-          <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
-            <div>
-              <h1 className="text-xl sm:text-3xl font-heading font-bold">Welcome, {user?.fullName}</h1>
-              <p className="text-muted-foreground">Employer Dashboard</p>
+          {/* ── Digital Hero Header ─────────────────────────────────── */}
+          <div className="relative rounded-2xl overflow-hidden mb-8">
+            <div className="bg-gradient-to-br from-primary via-primary/85 to-accent px-6 py-7 sm:px-8 sm:py-8 text-primary-foreground">
+              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(255,255,255,0.12),transparent_65%)] pointer-events-none" />
+              <div className="relative flex items-start justify-between flex-wrap gap-5">
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-[11px] font-semibold bg-white/15 px-2.5 py-0.5 rounded-full tracking-widest uppercase flex items-center gap-1.5">
+                      <Building2 className="h-3 w-3" />Employer
+                    </span>
+                    {openJobs.length > 0 && (
+                      <span className="text-[11px] font-medium bg-emerald-400/20 text-emerald-200 px-2.5 py-0.5 rounded-full flex items-center gap-1.5">
+                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse inline-block" />{openJobs.length} open job{openJobs.length !== 1 ? "s" : ""}
+                      </span>
+                    )}
+                    {pendingApplicants.length > 0 && (
+                      <span className="text-[11px] font-medium bg-amber-400/20 text-amber-200 px-2.5 py-0.5 rounded-full flex items-center gap-1.5">
+                        {pendingApplicants.length} pending review
+                      </span>
+                    )}
+                  </div>
+                  <h1 className="text-2xl sm:text-3xl font-heading font-bold tracking-tight">Hey, {user?.fullName} 👋</h1>
+                  <div className="flex flex-wrap gap-4 mt-3 text-sm text-primary-foreground/75">
+                    <span className="flex items-center gap-1.5"><Briefcase className="h-3.5 w-3.5" />{jobs.length} job{jobs.length !== 1 ? "s" : ""} posted</span>
+                    <span className="flex items-center gap-1.5"><FileText className="h-3.5 w-3.5" />{activeContracts.length} active contract{activeContracts.length !== 1 ? "s" : ""}</span>
+                    <span className="flex items-center gap-1.5"><Users className="h-3.5 w-3.5" />{recentApplicants.length} applicant{recentApplicants.length !== 1 ? "s" : ""}</span>
+                    {totalSpent > 0 && <span className="flex items-center gap-1.5"><DollarSign className="h-3.5 w-3.5" />${totalSpent.toLocaleString()} spent</span>}
+                  </div>
+                </div>
+                <div className="flex gap-2 flex-wrap">
+                  <Link to="/messages">
+                    <Button variant="outline" size="sm" className="bg-white/10 border-white/25 text-white hover:bg-white/20 hover:text-white"><MessageSquare className="h-4 w-4 mr-1" />Messages</Button>
+                  </Link>
+                  <Link to="/company/edit">
+                    <Button variant="outline" size="sm" className="bg-white/10 border-white/25 text-white hover:bg-white/20 hover:text-white">Edit Company</Button>
+                  </Link>
+                  <Link to="/jobs/create">
+                    <Button size="sm" className="bg-white text-primary hover:bg-white/90 font-semibold shadow-sm"><Plus className="h-4 w-4 mr-1" />Post Job</Button>
+                  </Link>
+                </div>
+              </div>
             </div>
-            <div className="flex gap-2 flex-wrap">
-              <Link to="/messages">
-                <Button variant="outline" size="sm"><MessageSquare className="h-4 w-4 mr-1" />Messages</Button>
-              </Link>
-              <Link to="/company/edit">
-                <Button variant="outline" size="sm">Edit Company</Button>
-              </Link>
-              <Link to="/jobs/create">
-                <Button size="sm"><Plus className="h-4 w-4 mr-1" />Post Job</Button>
-              </Link>
-            </div>
+            <div className="h-0.5 bg-gradient-to-r from-primary via-accent to-primary/40" />
           </div>
 
           <Tabs defaultValue="overview" className="space-y-6">
-            <TabsList className="flex-wrap h-auto gap-1">
-              <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="jobs">
-                Jobs <Badge variant="secondary" className="ml-1 text-xs">{jobs.length}</Badge>
+            <TabsList className="flex-wrap h-auto gap-1 p-1 bg-muted/50 rounded-xl">
+              <TabsTrigger value="overview" className="flex items-center gap-1.5 rounded-lg data-[state=active]:shadow-sm"><BarChart3 className="h-3.5 w-3.5" />Overview</TabsTrigger>
+              <TabsTrigger value="jobs" className="flex items-center gap-1.5 rounded-lg data-[state=active]:shadow-sm">
+                <Briefcase className="h-3.5 w-3.5" />Jobs <Badge variant="secondary" className="ml-0.5 text-xs">{jobs.length}</Badge>
               </TabsTrigger>
-              <TabsTrigger value="contracts">
-                Contracts
-                {activeContracts.length > 0 && <Badge variant="secondary" className="ml-1 text-xs">{activeContracts.length} active</Badge>}
-                {historyContracts.length > 0 && <Badge variant="outline" className="ml-1 text-xs">{historyContracts.length} done</Badge>}
+              <TabsTrigger value="contracts" className="flex items-center gap-1.5 rounded-lg data-[state=active]:shadow-sm">
+                <FileText className="h-3.5 w-3.5" />Contracts
+                {activeContracts.length > 0 && <Badge variant="secondary" className="ml-0.5 text-xs">{activeContracts.length} active</Badge>}
+                {historyContracts.length > 0 && <Badge variant="outline" className="ml-0.5 text-xs">{historyContracts.length} done</Badge>}
                 {contractsNeedingPayment.length > 0 && (
-                  <Badge variant="destructive" className="ml-1 text-xs">{contractsNeedingPayment.length}</Badge>
+                  <Badge variant="destructive" className="ml-0.5 text-xs">{contractsNeedingPayment.length}</Badge>
                 )}
               </TabsTrigger>
-              <TabsTrigger value="applicants">
-                Applicants
+              <TabsTrigger value="applicants" className="flex items-center gap-1.5 rounded-lg data-[state=active]:shadow-sm">
+                <Users className="h-3.5 w-3.5" />Applicants
                 {pendingApplicants.length > 0 && (
-                  <Badge variant="destructive" className="ml-1 text-xs">{pendingApplicants.length}</Badge>
+                  <Badge variant="destructive" className="ml-0.5 text-xs">{pendingApplicants.length}</Badge>
                 )}
               </TabsTrigger>
             </TabsList>
@@ -177,92 +204,138 @@ const EmployerDashboard = () => {
             {/* ── OVERVIEW ─────────────────────────────────────────────── */}
             <TabsContent value="overview" className="space-y-6">
               <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-sm font-medium">Open Jobs</CardTitle>
-                    <Briefcase className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{openJobs.length}</div>
-                    <p className="text-xs text-muted-foreground">{jobs.length} total</p>
+                {/* Open Jobs — blue */}
+                <Card className="border-0 shadow-sm ring-1 ring-blue-500/20 bg-gradient-to-br from-blue-500/10 to-blue-500/[0.03]">
+                  <CardContent className="pt-5 pb-4 px-5">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="h-10 w-10 rounded-xl bg-blue-500/15 flex items-center justify-center">
+                        <Briefcase className="h-5 w-5 text-blue-500" />
+                      </div>
+                      <span className="text-xs font-medium text-blue-500 bg-blue-500/10 px-2 py-0.5 rounded-full">
+                        {jobs.length} total
+                      </span>
+                    </div>
+                    <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">{openJobs.length}</div>
+                    <p className="text-sm text-muted-foreground mt-0.5">Open Jobs</p>
                   </CardContent>
                 </Card>
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-sm font-medium">Pending Applicants</CardTitle>
-                    <Users className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{pendingApplicants.length}</div>
-                    <p className="text-xs text-muted-foreground">{recentApplicants.length} total recent</p>
+
+                {/* Pending Applicants — amber */}
+                <Card className="border-0 shadow-sm ring-1 ring-amber-500/20 bg-gradient-to-br from-amber-500/10 to-amber-500/[0.03]">
+                  <CardContent className="pt-5 pb-4 px-5">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="h-10 w-10 rounded-xl bg-amber-500/15 flex items-center justify-center">
+                        <Users className="h-5 w-5 text-amber-500" />
+                      </div>
+                      <span className="text-xs font-medium text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-full">
+                        {recentApplicants.length} total recent
+                      </span>
+                    </div>
+                    <div className="text-3xl font-bold text-amber-600 dark:text-amber-400">{pendingApplicants.length}</div>
+                    <p className="text-sm text-muted-foreground mt-0.5">Pending Applicants</p>
                   </CardContent>
                 </Card>
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-sm font-medium">Active Contracts</CardTitle>
-                    <FileText className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{activeContracts.length}</div>
+
+                {/* Active Contracts — violet */}
+                <Card className="border-0 shadow-sm ring-1 ring-violet-500/20 bg-gradient-to-br from-violet-500/10 to-violet-500/[0.03]">
+                  <CardContent className="pt-5 pb-4 px-5">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="h-10 w-10 rounded-xl bg-violet-500/15 flex items-center justify-center">
+                        <FileText className="h-5 w-5 text-violet-500" />
+                      </div>
+                      {contractsNeedingPayment.length > 0 && (
+                        <span className="text-xs font-medium text-rose-500 bg-rose-500/10 px-2 py-0.5 rounded-full">
+                          {contractsNeedingPayment.length} need info
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-3xl font-bold text-violet-600 dark:text-violet-400">{activeContracts.length}</div>
+                    <p className="text-sm text-muted-foreground mt-0.5">Active Contracts</p>
                   </CardContent>
                 </Card>
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-sm font-medium">Total Spent</CardTitle>
-                    <DollarSign className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">${totalSpent.toLocaleString()}</div>
-                    <p className="text-xs text-muted-foreground">
-                      {contracts.filter((c) => c.status === "completed").length} completed
-                    </p>
+
+                {/* Total Spent — emerald */}
+                <Card className="border-0 shadow-sm ring-1 ring-emerald-500/20 bg-gradient-to-br from-emerald-500/10 to-emerald-500/[0.03]">
+                  <CardContent className="pt-5 pb-4 px-5">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="h-10 w-10 rounded-xl bg-emerald-500/15 flex items-center justify-center">
+                        <DollarSign className="h-5 w-5 text-emerald-500" />
+                      </div>
+                      <span className="text-xs font-medium text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded-full">
+                        {contracts.filter((c) => c.status === "completed").length} completed
+                      </span>
+                    </div>
+                    <div className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">${totalSpent.toLocaleString()}</div>
+                    <p className="text-sm text-muted-foreground mt-0.5">Total Spent</p>
                   </CardContent>
                 </Card>
               </div>
 
               <div className="grid lg:grid-cols-2 gap-6">
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between">
-                    <CardTitle className="text-base">Recent Jobs</CardTitle>
+                <Card className="border-border/50">
+                  <CardHeader className="flex flex-row items-center justify-between pb-3">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <div className="h-7 w-7 rounded-lg bg-blue-500/15 flex items-center justify-center">
+                        <Briefcase className="h-3.5 w-3.5 text-blue-500" />
+                      </div>
+                      Recent Jobs
+                    </CardTitle>
                     <Link to="/jobs/create">
-                      <Button size="sm" variant="outline"><Plus className="h-3 w-3 mr-1" />New</Button>
+                      <Button size="sm" variant="ghost" className="h-7 text-xs text-primary hover:text-primary"><Plus className="h-3 w-3 mr-0.5" />New Job</Button>
                     </Link>
                   </CardHeader>
-                  <CardContent className="space-y-3">
-                    {jobs.slice(0, 5).map((j) => (
-                      <Link key={j.id} to={`/jobs/${j.id}/applicants`} className="flex items-center justify-between hover:bg-muted/50 p-2 rounded">
+                  <CardContent className="space-y-1.5 pt-0">
+                    {jobs.length === 0 ? (
+                      <div className="py-6 text-center">
+                        <p className="text-sm text-muted-foreground mb-3">No jobs posted yet</p>
+                        <Link to="/jobs/create"><Button size="sm" variant="outline">Post a Job</Button></Link>
+                      </div>
+                    ) : jobs.slice(0, 5).map((j) => (
+                      <Link key={j.id} to={`/jobs/${j.id}/applicants`} className="flex items-center justify-between p-2.5 rounded-lg hover:bg-muted/40 border-l-2 border-blue-500/40 transition-colors">
                         <div>
-                          <p className="font-medium text-sm">{j.title}</p>
-                          <p className="text-xs text-muted-foreground">{new Date(j.createdAt).toLocaleDateString()}</p>
+                          <p className="font-medium text-sm leading-tight">{j.title}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">{new Date(j.createdAt).toLocaleDateString()}</p>
                         </div>
-                        <Badge variant={statusColor(j.status)}>{j.status}</Badge>
+                        <Badge variant={statusColor(j.status)} className="text-xs capitalize shrink-0">{j.status}</Badge>
                       </Link>
                     ))}
-                    {!jobs.length && <p className="text-muted-foreground text-sm">No jobs posted yet</p>}
                   </CardContent>
                 </Card>
 
-                <Card>
-                  <CardHeader><CardTitle className="text-base">Active Contracts</CardTitle></CardHeader>
-                  <CardContent className="space-y-3">
-                    {activeContracts.slice(0, 5).map((c) => (
-                      <Link key={c.id} to={`/contracts/${c.id}`} className="flex items-center justify-between hover:bg-muted/50 p-2 rounded">
+                <Card className="border-border/50">
+                  <CardHeader className="flex flex-row items-center justify-between pb-3">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <div className="h-7 w-7 rounded-lg bg-violet-500/15 flex items-center justify-center">
+                        <FileText className="h-3.5 w-3.5 text-violet-500" />
+                      </div>
+                      Active Contracts
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-1.5 pt-0">
+                    {activeContracts.length === 0 ? (
+                      <div className="py-4 text-center">
+                        <p className="text-sm text-muted-foreground mb-3">No active contracts</p>
+                        <Link to="/developers"><Button variant="outline" size="sm">Find Developers</Button></Link>
+                      </div>
+                    ) : activeContracts.slice(0, 5).map((c) => (
+                      <Link key={c.id} to={`/contracts/${c.id}`} className="flex items-center justify-between p-2.5 rounded-lg hover:bg-muted/40 border-l-2 border-violet-500/40 transition-colors">
                         <div>
-                          <p className="font-medium text-sm">Contract #{c.id.slice(0, 8)}</p>
-                          <p className="text-xs text-muted-foreground">${c.totalAmount.toLocaleString()}</p>
+                          <p className="font-medium text-sm leading-tight">Contract #{c.id.slice(0, 8)}</p>
+                          <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium mt-0.5">${c.totalAmount.toLocaleString()}</p>
                         </div>
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-1.5 shrink-0">
                           {!c.developerPaymentDetails && (
                             <Badge variant="secondary" className="text-xs">No payment info</Badge>
                           )}
-                          <Badge variant={statusColor(c.status)}>{c.status}</Badge>
+                          <Badge variant={statusColor(c.status)} className="text-xs capitalize">{c.status}</Badge>
                         </div>
                       </Link>
                     ))}
-                    {!activeContracts.length && <p className="text-muted-foreground text-sm">No active contracts</p>}
-                    <Link to="/developers">
-                      <Button variant="outline" size="sm" className="w-full mt-2">Find Developers</Button>
-                    </Link>
+                    {activeContracts.length === 0 ? null : (
+                      <Link to="/developers">
+                        <Button variant="outline" size="sm" className="w-full mt-1">Find More Developers</Button>
+                      </Link>
+                    )}
                   </CardContent>
                 </Card>
               </div>

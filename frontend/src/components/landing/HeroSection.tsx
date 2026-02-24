@@ -26,7 +26,7 @@ const HeroSection = () => {
             <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-primary/20 bg-primary/5">
               <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse shrink-0" />
               <span className="text-[10px] sm:text-xs font-medium text-primary leading-tight">
-                Africa&apos;s #1 Tech Talent Marketplace
+                Devlink &mdash; The #1 Tech Talent Marketplace
               </span>
             </div>
           </div>

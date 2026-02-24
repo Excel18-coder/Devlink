@@ -14,7 +14,7 @@ const CTASection = () => {
               Ready to build your next project?
             </h2>
             <p className="text-secondary-foreground/60 text-base sm:text-lg max-w-xl mx-auto mb-8">
-              Join thousands of companies and developers already using Afristack
+              Join thousands of companies and developers already using Devlink
               to ship world-class software.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">

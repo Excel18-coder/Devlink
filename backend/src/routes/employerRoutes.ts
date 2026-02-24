@@ -57,7 +57,7 @@ router.patch("/me", requireAuth, requireRole("employer"), validate(updateEmploye
 
 router.post("/me/avatar", requireAuth, requireRole("employer"), upload.single("avatar"), async (req: AuthRequest, res: Response) => {
   if (!req.file) return res.status(400).json({ message: "No file provided" });
-  const result = await uploadToCloudinary(req.file.buffer, { folder: "afristack/avatars", resource_type: "image" });
+  const result = await uploadToCloudinary(req.file.buffer, { folder: "devlink/avatars", resource_type: "image" });
   await Employer.findOneAndUpdate({ userId: req.user!.id }, { avatarUrl: result.secureUrl });
   return res.json({ avatarUrl: result.secureUrl });
 });

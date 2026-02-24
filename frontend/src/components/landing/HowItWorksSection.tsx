@@ -33,7 +33,7 @@ const HowItWorksSection = () => {
       <div className="container mx-auto px-4">
         <div className="text-center max-w-2xl mx-auto mb-10 sm:mb-16">
           <h2 className="text-2xl sm:text-3xl lg:text-4xl font-heading font-bold text-foreground mb-4">
-            How Afristack works
+            How Devlink works
           </h2>
           <p className="text-muted-foreground text-base sm:text-lg">
             From discovery to delivery in four simple steps.

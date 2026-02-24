@@ -1,17 +1,17 @@
 #!/bin/bash
 
-# Afristack Database Initialization Script
+# Devlink Database Initialization Script
 # This script creates the database and runs the schema
 
 set -e
 
-DB_USER="${DB_USER:-afristack}"
-DB_PASSWORD="${DB_PASSWORD:-afristack}"
-DB_NAME="${DB_NAME:-afristack}"
+DB_USER="${DB_USER:-devlink}"
+DB_PASSWORD="${DB_PASSWORD:-devlink}"
+DB_NAME="${DB_NAME:-devlink}"
 DB_HOST="${DB_HOST:-localhost}"
 DB_PORT="${DB_PORT:-5432}"
 
-echo "🚀 Afristack Database Initialization"
+echo "🚀 Devlink Database Initialization"
 echo "======================================"
 
 # Check if PostgreSQL is available

@@ -106,14 +106,14 @@ router.patch("/me", requireAuth, requireRole("developer"), validate(updateDevelo
 
 router.post("/me/resume", requireAuth, requireRole("developer"), upload.single("resume"), async (req: AuthRequest, res: Response) => {
   if (!req.file) return res.status(400).json({ message: "No file provided" });
-  const result = await uploadToCloudinary(req.file.buffer, { folder: "afristack/resumes", resource_type: "raw" });
+  const result = await uploadToCloudinary(req.file.buffer, { folder: "devlink/resumes", resource_type: "raw" });
   await Developer.findOneAndUpdate({ userId: req.user!.id }, { resumeUrl: result.secureUrl });
   return res.json({ resumeUrl: result.secureUrl });
 });
 
 router.post("/me/avatar", requireAuth, requireRole("developer"), upload.single("avatar"), async (req: AuthRequest, res: Response) => {
   if (!req.file) return res.status(400).json({ message: "No file provided" });
-  const result = await uploadToCloudinary(req.file.buffer, { folder: "afristack/avatars", resource_type: "image" });
+  const result = await uploadToCloudinary(req.file.buffer, { folder: "devlink/avatars", resource_type: "image" });
   await Developer.findOneAndUpdate({ userId: req.user!.id }, { avatarUrl: result.secureUrl });
   return res.json({ avatarUrl: result.secureUrl });
 });

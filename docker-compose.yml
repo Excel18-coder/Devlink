@@ -4,9 +4,9 @@ services:
   db:
     image: postgres:15-alpine
     environment:
-      POSTGRES_USER: afristack
-      POSTGRES_PASSWORD: afristack
-      POSTGRES_DB: afristack
+      POSTGRES_USER: devlink
+      POSTGRES_PASSWORD: devlink
+      POSTGRES_DB: devlink
     ports:
       - "5432:5432"
     volumes:
@@ -19,7 +19,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: 4000
-      DATABASE_URL: postgresql://afristack:afristack@db:5432/afristack
+      DATABASE_URL: postgresql://devlink:devlink@db:5432/devlink
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
       CORS_ORIGIN: http://localhost:5173

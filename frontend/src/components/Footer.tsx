@@ -10,7 +10,7 @@ const Footer = () => {
             <Link to="/" className="flex items-center gap-2 mb-4">
               <Code2 className="h-6 w-6 text-primary" />
               <span className="font-heading text-lg font-bold text-secondary-foreground">
-                Afri<span className="text-primary">stack</span>
+                Dev<span className="text-primary">link</span>
               </span>
             </Link>
             <p className="text-secondary-foreground/50 text-sm leading-relaxed">
@@ -48,7 +48,7 @@ const Footer = () => {
 
         <div className="border-t border-secondary-foreground/10 pt-8 flex flex-col sm:flex-row justify-between items-center gap-4">
           <p className="text-xs text-secondary-foreground/40">
-            © 2026 Afristack. All rights reserved.
+            © 2026 Devlink. All rights reserved.
           </p>
           <div className="flex gap-6">
             <Link to="/privacy" className="text-xs text-secondary-foreground/40 hover:text-primary transition-colors">Privacy</Link>

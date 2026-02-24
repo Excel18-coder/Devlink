@@ -1,4 +1,4 @@
-# Afristack - Global Talent Marketplace
+# Devlink - Global Talent Marketplace
 
 A professional talent marketplace connecting software developers worldwide with employers for remote and contract-based work.
 
@@ -22,7 +22,7 @@ A professional talent marketplace connecting software developers worldwide with 
 ## Project Structure
 
 ```
-afristack/
+devlink/
 ├── frontend/          # React frontend application
 │   ├── src/
 │   │   ├── components/    # Reusable UI components
@@ -91,7 +91,7 @@ cp .env.example .env
 ```env
 NODE_ENV=development
 PORT=4000
-DATABASE_URL=postgresql://afristack:afristack@localhost:5432/afristack
+DATABASE_URL=postgresql://devlink:devlink@localhost:5432/devlink
 JWT_ACCESS_SECRET=your-secret-key-here
 JWT_REFRESH_SECRET=your-refresh-secret-here
 JWT_ACCESS_TTL=15m

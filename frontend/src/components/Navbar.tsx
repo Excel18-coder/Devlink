@@ -20,7 +20,7 @@ const Navbar = () => {
         <Link to="/" className="flex items-center gap-2">
           <Code2 className="h-7 w-7 text-primary" />
           <span className="font-heading text-xl font-bold text-secondary-foreground">
-            Afri<span className="text-primary">stack</span>
+            Dev<span className="text-primary">link</span>
           </span>
         </Link>
 

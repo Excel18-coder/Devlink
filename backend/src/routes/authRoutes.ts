@@ -33,7 +33,8 @@ router.post("/send-otp", validate(sendOtpSchema), async (req, res) => {
     await sendVerificationEmail(email, otp);
   } catch (err) {
     console.error("Failed to send verification email:", err);
-    return res.status(500).json({ message: "Failed to send verification email. Check SMTP settings." });
+    await EmailVerification.deleteOne({ email });
+    return res.status(500).json({ message: "We couldn't send the verification code. Please try again in a moment." });
   }
 
   return res.json({ message: "Verification code sent to your email" });
@@ -45,7 +46,7 @@ router.post("/verify-otp", validate(verifyOtpSchema), async (req, res) => {
   const { otp } = req.body as { otp: string };
 
   const record = await EmailVerification.findOne({ email, verified: false });
-  if (!record) return res.status(400).json({ message: "No pending verification for this email" });
+  if (!record) return res.status(400).json({ message: "No verification request found. Please go back and request a new code." });
   if (record.expiresAt < new Date()) {
     await EmailVerification.deleteOne({ _id: record._id });
     return res.status(400).json({ message: "Verification code expired. Please request a new one." });
@@ -72,7 +73,7 @@ router.post("/register", validate(registerSchema), async (req, res) => {
   // Ensure email was verified via OTP
   const verification = await EmailVerification.findOne({ email: normalizedEmail, verified: true });
   if (!verification) {
-    return res.status(403).json({ message: "Email not verified. Please complete email verification first." });
+    return res.status(403).json({ message: "Please verify your email before creating an account." });
   }
 
   const existing = await User.findOne({ email: normalizedEmail });

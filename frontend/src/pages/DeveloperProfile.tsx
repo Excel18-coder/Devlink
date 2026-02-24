@@ -24,6 +24,7 @@ interface Developer {
   rateAmount: number;
   ratingAvg: number;
   location: string;
+  avatarUrl?: string;
 }
 
 interface Review {
@@ -94,13 +95,17 @@ const DeveloperProfile = () => {
               <Card>
                 <CardHeader>
                   <div className="flex items-start gap-4">
-                    <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                      <span className="text-xl sm:text-2xl font-heading font-bold text-primary">
-                        {developer.fullName
-                          ?.split(" ")
-                          .map((n) => n[0])
-                          .join("")}
-                      </span>
+                    <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-primary/10 flex items-center justify-center shrink-0 overflow-hidden">
+                      {developer.avatarUrl ? (
+                        <img src={developer.avatarUrl} alt={developer.fullName} className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-xl sm:text-2xl font-heading font-bold text-primary">
+                          {developer.fullName
+                            ?.split(" ")
+                            .map((n) => n[0])
+                            .join("")}
+                        </span>
+                      )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <CardTitle className="text-xl sm:text-2xl mb-1 break-words">{developer.fullName}</CardTitle>

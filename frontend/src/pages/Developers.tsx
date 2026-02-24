@@ -19,6 +19,7 @@ interface Developer {
   rateAmount: number;
   ratingAvg: number;
   location: string;
+  avatarUrl?: string;
 }
 
 const Developers = () => {
@@ -93,10 +94,14 @@ const Developers = () => {
                 <div key={dev.id} className="bg-card border border-border rounded-xl p-6 card-elevated">
                   <div className="flex items-start justify-between mb-4">
                     <div>
-                      <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-3">
-                        <span className="text-lg font-heading font-bold text-primary">
-                          {dev.fullName?.split(" ").map(n => n[0]).join("") || "?"}
-                        </span>
+                      <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-3 overflow-hidden">
+                        {dev.avatarUrl ? (
+                          <img src={dev.avatarUrl} alt={dev.fullName} className="w-full h-full object-cover" />
+                        ) : (
+                          <span className="text-lg font-heading font-bold text-primary">
+                            {dev.fullName?.split(" ").map(n => n[0]).join("") || "?"}
+                          </span>
+                        )}
                       </div>
                       <h3 className="font-heading font-semibold text-card-foreground">{dev.fullName}</h3>
                       <p className="text-sm text-muted-foreground">{dev.yearsExperience} years experience</p>

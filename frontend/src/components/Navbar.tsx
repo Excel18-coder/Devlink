@@ -51,6 +51,12 @@ const Navbar = () => {
                   Dashboard
                 </Button>
               </Link>
+              <Link to={user.role === "employer" ? "/company/edit" : "/profile/edit"}>
+                <Button variant="outline" size="sm" className="gap-1.5">
+                  <User className="h-4 w-4" />
+                  Profile
+                </Button>
+              </Link>
               <Button variant="outline" size="sm" onClick={handleLogout}>
                 Log Out
               </Button>
@@ -122,6 +128,12 @@ const Navbar = () => {
                   <Button size="sm" className="w-full h-11 gap-2 justify-center">
                     <LayoutDashboard className="h-4 w-4" />
                     Dashboard
+                  </Button>
+                </Link>
+                <Link to={user.role === "employer" ? "/company/edit" : "/profile/edit"} onClick={() => setMobileOpen(false)}>
+                  <Button variant="outline" size="sm" className="w-full h-11 gap-2 justify-center">
+                    <User className="h-4 w-4" />
+                    Profile
                   </Button>
                 </Link>
                 <Button

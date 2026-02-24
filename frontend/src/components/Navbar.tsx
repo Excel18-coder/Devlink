@@ -32,6 +32,9 @@ const Navbar = () => {
           <Link to="/jobs" className="text-sm text-secondary-foreground/70 hover:text-primary transition-colors font-medium">
             Browse Jobs
           </Link>
+          <Link to="/showcase" className="text-sm text-secondary-foreground/70 hover:text-primary transition-colors font-medium">
+            Showcase
+          </Link>
           {user && (
             <Link to="/messages" className="text-sm text-secondary-foreground/70 hover:text-primary transition-colors font-medium">
               Messages
@@ -79,39 +82,65 @@ const Navbar = () => {
 
       {/* Mobile menu */}
       {mobileOpen && (
-        <div className="md:hidden bg-secondary border-t border-border/10 p-4 space-y-3">
-          <Link to="/developers" className="block text-sm text-secondary-foreground/70 hover:text-primary py-2">
-            Find Developers
-          </Link>
-          <Link to="/jobs" className="block text-sm text-secondary-foreground/70 hover:text-primary py-2">
-            Browse Jobs
-          </Link>
-          {user && (
-            <Link to="/messages" className="block text-sm text-secondary-foreground/70 hover:text-primary py-2">
-              Messages
+        <div className="md:hidden bg-secondary border-t border-border/10 px-4 pb-4">
+          <nav className="flex flex-col divide-y divide-border/10">
+            <Link
+              to="/developers"
+              onClick={() => setMobileOpen(false)}
+              className="text-sm text-secondary-foreground/70 hover:text-primary py-3.5 transition-colors"
+            >
+              Find Developers
             </Link>
-          )}
-          <div className="pt-2 flex flex-col gap-2">
+            <Link
+              to="/jobs"
+              onClick={() => setMobileOpen(false)}
+              className="text-sm text-secondary-foreground/70 hover:text-primary py-3.5 transition-colors"
+            >
+              Browse Jobs
+            </Link>
+            <Link
+              to="/showcase"
+              onClick={() => setMobileOpen(false)}
+              className="text-sm text-secondary-foreground/70 hover:text-primary py-3.5 transition-colors"
+            >
+              Showcase
+            </Link>
+            {user && (
+              <Link
+                to="/messages"
+                onClick={() => setMobileOpen(false)}
+                className="text-sm text-secondary-foreground/70 hover:text-primary py-3.5 transition-colors"
+              >
+                Messages
+              </Link>
+            )}
+          </nav>
+          <div className="pt-3 flex flex-col gap-2">
             {user ? (
               <>
-                <Link to="/dashboard">
-                  <Button variant="ghost" size="sm" className="text-secondary-foreground/70 justify-start w-full">
+                <Link to="/dashboard" onClick={() => setMobileOpen(false)}>
+                  <Button variant="ghost" size="sm" className="text-secondary-foreground/70 justify-start w-full h-11">
                     Dashboard
                   </Button>
                 </Link>
-                <Button variant="outline" size="sm" onClick={handleLogout}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-11"
+                  onClick={() => { setMobileOpen(false); handleLogout(); }}
+                >
                   Log Out
                 </Button>
               </>
             ) : (
               <>
-                <Link to="/login">
-                  <Button variant="ghost" size="sm" className="text-secondary-foreground/70 justify-start w-full">
+                <Link to="/login" onClick={() => setMobileOpen(false)}>
+                  <Button variant="ghost" size="sm" className="text-secondary-foreground/70 justify-start w-full h-11">
                     Log In
                   </Button>
                 </Link>
-                <Link to="/register">
-                  <Button variant="hero" size="sm">
+                <Link to="/register" onClick={() => setMobileOpen(false)}>
+                  <Button variant="hero" size="sm" className="w-full h-11">
                     Get Started
                   </Button>
                 </Link>

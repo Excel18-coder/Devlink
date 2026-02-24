@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { ArrowLeft } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,6 +30,7 @@ const Messages = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(true);
+  const [mobileView, setMobileView] = useState<"list" | "thread">("list");
 
   useEffect(() => {
     fetchConversations();
@@ -125,9 +127,9 @@ const Messages = () => {
         <div className="container mx-auto px-4">
           <h1 className="text-2xl sm:text-3xl font-heading font-bold mb-8">Messages</h1>
 
-          <div className="flex flex-col lg:grid lg:grid-cols-4 gap-6 lg:h-[600px]">
+          <div className="grid lg:grid-cols-4 gap-6 lg:h-[600px]">
             {/* Conversations List */}
-            <Card className="lg:col-span-1 lg:overflow-y-auto">
+            <Card className={`lg:col-span-1 lg:overflow-y-auto ${mobileView === "thread" ? "hidden lg:flex lg:flex-col" : "flex flex-col"}`}>
               <CardHeader>
                 <CardTitle className="text-sm">Conversations</CardTitle>
               </CardHeader>
@@ -138,7 +140,7 @@ const Messages = () => {
                   <div className="divide-y">
                     {pendingRecipient && (
                       <button
-                        onClick={() => { setSelectedConv(null); }}
+                        onClick={() => { setSelectedConv(null); setMobileView("thread"); }}
                         className={`w-full p-4 text-left hover:bg-muted/50 transition-colors ${
                           !selectedConv ? "bg-muted" : ""
                         }`}
@@ -150,7 +152,7 @@ const Messages = () => {
                     {conversations.map((conv) => (
                       <button
                         key={conv.id}
-                        onClick={() => { setSelectedConv(conv.id); setPendingRecipient(null); }}
+                        onClick={() => { setSelectedConv(conv.id); setPendingRecipient(null); setMobileView("thread"); }}
                         className={`w-full p-4 text-left hover:bg-muted/50 transition-colors ${
                           selectedConv === conv.id ? "bg-muted" : ""
                         }`}
@@ -164,8 +166,15 @@ const Messages = () => {
             </Card>
 
             {/* Messages */}
-            <Card className="lg:col-span-3 flex flex-col h-[500px] lg:h-auto">
-              <CardHeader className="border-b">
+            <Card className={`lg:col-span-3 flex flex-col ${mobileView === "list" ? "hidden lg:flex" : "h-[calc(100vh-180px)] lg:h-auto"}`}>
+              <CardHeader className="border-b flex flex-row items-center gap-2 py-3 px-4">
+                <button
+                  className="lg:hidden shrink-0 p-1 -ml-1 text-muted-foreground hover:text-foreground transition-colors"
+                  onClick={() => setMobileView("list")}
+                  aria-label="Back to conversations"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                </button>
                 <CardTitle className="text-sm">
                   {selectedConv
                     ? conversations.find((c) => c.id === selectedConv)?.otherUserName

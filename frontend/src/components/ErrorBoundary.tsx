@@ -6,36 +6,54 @@ interface State {
   error?: Error;
 }
 
+const CHUNK_RELOAD_KEY = "devlink_chunk_reload_at";
+
+function isChunkError(error: Error): boolean {
+  return (
+    error.name === "ChunkLoadError" ||
+    /loading chunk|failed to fetch|load failed|dynamically imported module/i.test(error.message)
+  );
+}
+
 /**
  * Catches render errors from lazy-loaded pages.
- * – ChunkLoadError: auto-reloads once (handles stale cache after redeployment)
- * – Other errors: shows a friendly fallback UI with Refresh / Go Home buttons
+ *
+ * Chunk errors (stale cache after redeployment):
+ *   1. First occurrence  → hard-navigate to the same URL with cache-busting
+ *      query param (?v=<timestamp>) so the browser fetches fresh HTML + assets.
+ *   2. Second occurrence within 10s → show manual "Refresh" fallback to avoid
+ *      infinite reload loops.
+ *
+ * Other render errors → friendly fallback UI with Refresh / Go Home buttons.
  */
 class ErrorBoundary extends React.Component<React.PropsWithChildren, State> {
-  private reloadAttempted = false;
-
   constructor(props: React.PropsWithChildren) {
     super(props);
     this.state = { hasError: false, isChunkError: false };
   }
 
   static getDerivedStateFromError(error: Error): State {
-    const isChunkError =
-      error.name === "ChunkLoadError" ||
-      /loading chunk|failed to fetch|load failed|dynamically imported module/i.test(
-        error.message
-      );
-    return { hasError: true, isChunkError, error };
+    return { hasError: true, isChunkError: isChunkError(error), error };
   }
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
     console.error("[ErrorBoundary]", error, info);
 
-    // Auto-reload once for chunk errors (new deployment invalidated old chunks)
-    if (this.state.isChunkError && !this.reloadAttempted) {
-      this.reloadAttempted = true;
-      window.location.reload();
+    if (!isChunkError(error)) return;
+
+    const now = Date.now();
+    const lastReload = Number(sessionStorage.getItem(CHUNK_RELOAD_KEY) ?? 0);
+    const tooSoon = now - lastReload < 10_000; // within last 10 s → already tried
+
+    if (!tooSoon) {
+      sessionStorage.setItem(CHUNK_RELOAD_KEY, String(now));
+      // Hard-navigate with cache-bust param so CDN/service-worker serves
+      // fresh assets instead of the stale cached chunk filenames
+      const url = new URL(window.location.href);
+      url.searchParams.set("v", String(now));
+      window.location.replace(url.toString());
     }
+    // else: show the manual fallback UI (loop guard)
   }
 
   render() {

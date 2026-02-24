@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import compression from "compression";
 import helmet from "helmet";
 import morgan from "morgan";
 import rateLimit from "express-rate-limit";
@@ -41,6 +42,7 @@ app.use(cors({
   },
   credentials: true
 }));
+app.use(compression());
 app.use(express.json());
 app.use(morgan("dev"));
 
@@ -48,15 +50,29 @@ app.use(morgan("dev"));
 const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 200 });
 app.use(limiter);
 
-// Maintenance mode — checked from DB; admin routes are always exempt
-app.use(async (req, res, next) => {
+// Maintenance mode — cached in-memory for 30 s to avoid hitting DB on every request
+let _maintenanceCache: { value: boolean; cachedAt: number } | null = null;
+const MAINTENANCE_TTL_MS = 30_000;
+async function isMaintenanceMode(): Promise<boolean> {
+  const now = Date.now();
+  if (_maintenanceCache && now - _maintenanceCache.cachedAt < MAINTENANCE_TTL_MS) {
+    return _maintenanceCache.value;
+  }
   try {
-    if (req.path.startsWith("/api/admin") || req.path === "/api/health") return next();
-    const cfg = await AdminConfig.findOne({ key: "maintenance_mode" });
-    if (cfg && cfg.value === "true") {
-      return res.status(503).json({ message: "Platform is under maintenance. Please try again later." });
-    }
-  } catch { /* DB error — allow through */ }
+    const cfg = await AdminConfig.findOne({ key: "maintenance_mode" }).lean();
+    const value = !!(cfg && (cfg as { value?: string }).value === "true");
+    _maintenanceCache = { value, cachedAt: now };
+    return value;
+  } catch {
+    return false; // DB error — allow through
+  }
+}
+
+app.use(async (req, res, next) => {
+  if (req.path.startsWith("/api/admin") || req.path === "/api/health") return next();
+  if (await isMaintenanceMode()) {
+    return res.status(503).json({ message: "Platform is under maintenance. Please try again later." });
+  }
   return next();
 });
 

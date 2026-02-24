@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import DeveloperGuard from "@/components/DeveloperGuard";
 
 const Index = lazy(() => import("./pages/Index"));
 const Jobs = lazy(() => import("./pages/Jobs"));
@@ -28,7 +29,14 @@ const ShowcaseDetail = lazy(() => import("./pages/ShowcaseDetail"));
 const EditJob = lazy(() => import("./pages/EditJob"));
 
 const queryClient = new QueryClient({
-  defaultOptions: { queries: { staleTime: 60000, retry: 1 } },
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000,   // 5 min — reuse cached data before refetching
+      gcTime: 10 * 60 * 1000,     // 10 min — keep in memory for instant back-nav
+      retry: 1,
+      refetchOnWindowFocus: false, // don't re-fetch every time user switches tabs
+    },
+  },
 });
 
 const PageLoader = () => (
@@ -47,25 +55,31 @@ const App = () => (
           <ErrorBoundary>
             <Suspense fallback={<PageLoader />}>
               <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/jobs" element={<Jobs />} />
-              <Route path="/jobs/create" element={<CreateJob />} />
-              <Route path="/jobs/:id" element={<JobDetail />} />
-              <Route path="/jobs/:id/applicants" element={<JobApplicants />} />
-              <Route path="/jobs/:id/edit" element={<EditJob />} />
-              <Route path="/developers" element={<Developers />} />
-              <Route path="/developers/:id" element={<DeveloperProfile />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/profile/edit" element={<EditProfile />} />
-              <Route path="/company/edit" element={<EditCompany />} />
-              <Route path="/contracts/create" element={<CreateContract />} />
-              <Route path="/contracts/:id" element={<ContractDetail />} />
-              <Route path="/messages" element={<Messages />} />
-              <Route path="/showcase" element={<Showcase />} />
-              <Route path="/showcase/:id" element={<ShowcaseDetail />} />
-              <Route path="*" element={<NotFound />} />
+                {/* Public — no gate */}
+                <Route path="/" element={<Index />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
+
+                {/* Profile edit is the gate destination — never block it */}
+                <Route path="/profile/edit" element={<EditProfile />} />
+                <Route path="/company/edit" element={<EditCompany />} />
+
+                {/* All other routes — developers must complete profile first */}
+                <Route path="/jobs" element={<DeveloperGuard><Jobs /></DeveloperGuard>} />
+                <Route path="/jobs/create" element={<DeveloperGuard><CreateJob /></DeveloperGuard>} />
+                <Route path="/jobs/:id" element={<DeveloperGuard><JobDetail /></DeveloperGuard>} />
+                <Route path="/jobs/:id/applicants" element={<DeveloperGuard><JobApplicants /></DeveloperGuard>} />
+                <Route path="/jobs/:id/edit" element={<DeveloperGuard><EditJob /></DeveloperGuard>} />
+                <Route path="/developers" element={<DeveloperGuard><Developers /></DeveloperGuard>} />
+                <Route path="/developers/:id" element={<DeveloperGuard><DeveloperProfile /></DeveloperGuard>} />
+                <Route path="/dashboard" element={<DeveloperGuard><Dashboard /></DeveloperGuard>} />
+                <Route path="/contracts/create" element={<DeveloperGuard><CreateContract /></DeveloperGuard>} />
+                <Route path="/contracts/:id" element={<DeveloperGuard><ContractDetail /></DeveloperGuard>} />
+                <Route path="/messages" element={<DeveloperGuard><Messages /></DeveloperGuard>} />
+                <Route path="/showcase" element={<DeveloperGuard><Showcase /></DeveloperGuard>} />
+                <Route path="/showcase/:id" element={<DeveloperGuard><ShowcaseDetail /></DeveloperGuard>} />
+
+                <Route path="*" element={<NotFound />} />
               </Routes>
             </Suspense>
           </ErrorBoundary>

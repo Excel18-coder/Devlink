@@ -3,7 +3,12 @@ import { env } from "./env.js";
 
 export const connectDB = async (): Promise<void> => {
   try {
-    await mongoose.connect(env.mongodbUri);
+    await mongoose.connect(env.mongodbUri, {
+      maxPoolSize: 10,       // allow up to 10 concurrent connections
+      minPoolSize: 2,        // keep 2 warm so first requests aren't cold
+      serverSelectionTimeoutMS: 5_000,  // fail fast if Atlas unreachable
+      socketTimeoutMS: 30_000,          // drop stalled queries after 30 s
+    });
     // eslint-disable-next-line no-console
     console.log("MongoDB connected");
   } catch (err) {

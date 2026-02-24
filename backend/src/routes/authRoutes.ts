@@ -96,7 +96,15 @@ router.post("/register", validate(registerSchema), async (req, res) => {
   const refreshToken = signRefreshToken({ id: userId });
   await RefreshToken.create({ userId: user._id, token: refreshToken, expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) });
 
-  return res.status(201).json({ accessToken, refreshToken, userId, role });
+  return res.status(201).json({
+    accessToken,
+    refreshToken,
+    userId,
+    role,
+    email: user.email,
+    fullName: user.fullName ?? "",
+    status: user.status,
+  });
 });
 
 router.post("/login", validate(loginSchema), async (req, res) => {
@@ -113,7 +121,15 @@ router.post("/login", validate(loginSchema), async (req, res) => {
   const refreshToken = signRefreshToken({ id: userId });
   await RefreshToken.create({ userId: user._id, token: refreshToken, expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) });
 
-  return res.json({ accessToken, refreshToken, userId, role: user.role });
+  return res.json({
+    accessToken,
+    refreshToken,
+    userId,
+    role: user.role,
+    email: user.email,
+    fullName: user.fullName ?? "",
+    status: user.status,
+  });
 });
 
 router.post("/refresh", async (req, res) => {

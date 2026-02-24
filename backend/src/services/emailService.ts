@@ -1,17 +1,7 @@
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
 import { env } from "../config/env.js";
 
-// Gmail SMTP transporter
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: env.smtpUser,
-    pass: env.smtpPass, // Use a Gmail App Password, NOT your regular password
-  },
-  connectionTimeout: 10_000,  // fail fast if SMTP unreachable
-  greetingTimeout: 10_000,
-  socketTimeout: 15_000,
-});
+const resend = new Resend(env.resendApiKey);
 
 export async function sendVerificationEmail(email: string, otp: string): Promise<void> {
   const html = `
@@ -64,10 +54,15 @@ export async function sendVerificationEmail(email: string, otp: string): Promise
     </html>
   `;
 
-  await transporter.sendMail({
-    from: env.smtpFrom,
+  const { error } = await resend.emails.send({
+    from: env.resendFrom,
     to: email,
+    replyTo: "excel2130@gmail.com",
     subject: "Your Devlink verification code",
     html,
   });
+
+  if (error) {
+    throw new Error(error.message);
+  }
 }

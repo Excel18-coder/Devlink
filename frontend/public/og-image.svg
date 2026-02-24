@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f1729"/>
+      <stop offset="100%" style="stop-color:#1a2540"/>
+    </linearGradient>
+    <linearGradient id="greenGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#2d9e6a"/>
+      <stop offset="100%" style="stop-color:#38c77e"/>
+    </linearGradient>
+    <linearGradient id="glowGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#2d9e6a;stop-opacity:0.15"/>
+      <stop offset="100%" style="stop-color:#2d9e6a;stop-opacity:0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bgGrad)"/>
+
+  <!-- Decorative circles -->
+  <circle cx="1080" cy="80"  r="280" fill="#2d9e6a" opacity="0.06"/>
+  <circle cx="120"  cy="560" r="200" fill="#2d9e6a" opacity="0.04"/>
+  <circle cx="900"  cy="500" r="120" fill="#38c77e" opacity="0.05"/>
+
+  <!-- Green accent bar -->
+  <rect x="80" y="210" width="6" height="200" rx="3" fill="url(#greenGrad)"/>
+
+  <!-- Logo wordmark -->
+  <text x="108" y="185" font-family="Arial, sans-serif" font-size="64" font-weight="900" fill="white" letter-spacing="-1">Dev<tspan fill="#2d9e6a">link</tspan></text>
+
+  <!-- Divider dot -->
+  <circle cx="108" cy="210" r="3" fill="#2d9e6a"/>
+
+  <!-- Tagline -->
+  <text x="108" y="260" font-family="Arial, sans-serif" font-size="26" font-weight="400" fill="#94a3b8" letter-spacing="0.5">Africa's #1 Tech Talent Marketplace</text>
+
+  <!-- Main headline -->
+  <text x="108" y="340" font-family="Arial, sans-serif" font-size="42" font-weight="700" fill="white">Hire vetted software developers.</text>
+  <text x="108" y="395" font-family="Arial, sans-serif" font-size="42" font-weight="700" fill="white">Remote, contract &amp; full-time.</text>
+
+  <!-- Stats row -->
+  <rect x="108" y="430" width="960" height="1" fill="#2d9e6a" opacity="0.3"/>
+
+  <text x="108" y="470" font-family="Arial, sans-serif" font-size="22" fill="#64748b">
+    <tspan font-weight="700" fill="#38c77e">10,000+</tspan> Developers
+    <tspan dx="30" font-weight="700" fill="#38c77e">50+</tspan> Countries
+    <tspan dx="30" font-weight="700" fill="#38c77e">$12M+</tspan> Paid Out
+    <tspan dx="30" font-weight="700" fill="#38c77e">98%</tspan> Satisfaction
+  </text>
+
+  <!-- URL badge -->
+  <rect x="108" y="510" width="210" height="42" rx="21" fill="#2d9e6a" opacity="0.15"/>
+  <text x="213" y="536" font-family="Arial, sans-serif" font-size="20" fill="#2d9e6a" font-weight="700" text-anchor="middle">devlink.co.ke</text>
+</svg>

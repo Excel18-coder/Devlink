@@ -7,8 +7,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { useSEO } from "@/hooks/useSEO";
 
 const Login = () => {
+  useSEO({
+    title: "Sign In to Devlink",
+    description: "Sign in to your Devlink account to access your dashboard, manage contracts, and connect with top clients or developers.",
+    canonical: "https://devlink.co.ke/login",
+    noIndex: true,
+  });
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);

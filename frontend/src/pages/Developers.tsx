@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Search, MapPin, Clock, Star } from "lucide-react";
 import { api } from "@/lib/api";
+import { useSEO } from "@/hooks/useSEO";
 
 interface Developer {
   id: string;
@@ -21,6 +22,11 @@ interface Developer {
 }
 
 const Developers = () => {
+  useSEO({
+    title: "Hire Vetted Software Developers – Africa & Worldwide | Devlink",
+    description: "Browse 10,000+ vetted software developers on Devlink. Filter by skills, hourly rate, availability, and location. Hire the best tech talent for remote, contract, or full-time roles.",
+    canonical: "https://devlink.co.ke/developers",
+  });
   const [developers, setDevelopers] = useState<Developer[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");

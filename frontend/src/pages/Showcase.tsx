@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { api } from "@/lib/api";
+import { useSEO } from "@/hooks/useSEO";
 import { Search, ExternalLink, Github, Heart, Star, ChevronLeft, ChevronRight, Layers } from "lucide-react";
 
 interface ShowcaseItem {
@@ -58,6 +59,11 @@ const lookingForLabel: Record<string, { label: string; color: string }> = {
 };
 
 const Showcase = () => {
+  useSEO({
+    title: "Developer Project Showcase – Portfolio & Work Samples | Devlink",
+    description: "Discover real-world projects built by Devlink developers. Browse portfolios across Fintech, Agritech, AI, Web, Mobile, and 10+ industry categories.",
+    canonical: "https://devlink.co.ke/showcase",
+  });
   const [data, setData] = useState<ShowcaseResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");

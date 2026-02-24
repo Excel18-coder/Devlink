@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Search, MapPin, DollarSign, Briefcase } from "lucide-react";
 import { api } from "@/lib/api";
+import { useSEO } from "@/hooks/useSEO";
 
 interface Job {
   id: string;
@@ -27,6 +28,11 @@ const typeColor: Record<string, string> = {
 };
 
 const Jobs = () => {
+  useSEO({
+    title: "Browse Developer Jobs – Remote & Contract Roles | Devlink",
+    description: "Find the latest remote, contract, and full-time developer jobs on Devlink. Filter by skills, location, and salary. New roles posted daily.",
+    canonical: "https://devlink.co.ke/jobs",
+  });
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");

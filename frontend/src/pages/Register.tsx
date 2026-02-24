@@ -10,10 +10,16 @@ import { useToast } from "@/hooks/use-toast";
 import { api } from "@/lib/api";
 
 import { Mail, ShieldCheck, UserPlus, ArrowRight, RefreshCw } from "lucide-react";
+import { useSEO } from "@/hooks/useSEO";
 
 type Step = "email" | "otp" | "details";
 
 const Register = () => {
+  useSEO({
+    title: "Create a Free Account – Devlink",
+    description: "Join Devlink for free. Developers build verified profiles and find top remote jobs. Employers hire vetted talent with milestone-based escrow contracts.",
+    canonical: "https://devlink.co.ke/register",
+  });
   const [searchParams] = useSearchParams();
   const [step, setStep] = useState<Step>("email");
 

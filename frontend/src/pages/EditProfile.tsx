@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -29,6 +29,7 @@ interface Profile {
 const EditProfile = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -100,7 +101,7 @@ const EditProfile = () => {
         }
       });
       toast({ title: "Profile updated!" });
-      navigate("/dashboard");
+      navigate(searchParams.get("next") ?? "/dashboard");
     } catch (err) {
       toast({ title: "Failed to update profile", variant: "destructive" });
     } finally {

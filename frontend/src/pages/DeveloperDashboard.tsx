@@ -9,7 +9,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/lib/api";
-import { Briefcase, FileText, DollarSign, Star, MessageSquare, User, Layers, Plus, Trash2, ExternalLink, Github, Globe, Pencil, BarChart3, AlertTriangle } from "lucide-react";
+import { getMissingProfileFields } from "@/lib/profileUtils";
+import ProfileGate from "@/components/ProfileGate";
+import { Briefcase, FileText, DollarSign, Star, MessageSquare, User, Layers, Plus, Trash2, ExternalLink, Github, Globe, Pencil, BarChart3 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -136,6 +138,12 @@ const DeveloperDashboard = () => {
   }, [user?.id]);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
+
+  // Block the entire dashboard until profile is complete
+  if (!loading && profile) {
+    const missing = getMissingProfileFields(profile);
+    if (missing.length > 0) return <ProfileGate missing={missing} />;  
+  }
 
   const handleWithdraw = async (appId: string) => {
     if (!confirm("Withdraw this application?")) return;

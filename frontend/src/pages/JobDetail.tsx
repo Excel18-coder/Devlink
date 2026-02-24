@@ -9,6 +9,7 @@ import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { MapPin, DollarSign, Briefcase, Clock, ArrowLeft } from "lucide-react";
+import { getMissingProfileFields } from "@/lib/profileUtils";
 
 interface Job {
   id: string;
@@ -36,6 +37,7 @@ const JobDetail = () => {
   const [loading, setLoading] = useState(true);
   const [applying, setApplying] = useState(false);
   const [applied, setApplied] = useState(false);
+  const [devProfileComplete, setDevProfileComplete] = useState<boolean | null>(null);
 
   useEffect(() => {
     const fetchJob = async () => {
@@ -51,9 +53,22 @@ const JobDetail = () => {
     fetchJob();
   }, [id]);
 
+  // Pre-check developer profile completeness so the Apply button is ready
+  useEffect(() => {
+    if (user?.role !== "developer") return;
+    api<{ bio?: string; skills?: string[]; yearsExperience?: number; location?: string; rateAmount?: number; avatarUrl?: string }>(`/developers/${user.id}`)
+      .then((p) => setDevProfileComplete(getMissingProfileFields(p).length === 0))
+      .catch(() => setDevProfileComplete(false));
+  }, [user]);
+
   const handleApply = async () => {
     if (!user) {
       toast({ title: "Please log in to apply", variant: "destructive" });
+      return;
+    }
+    if (devProfileComplete === false) {
+      toast({ title: "Complete your profile first", description: "You need a complete profile before applying for jobs.", variant: "destructive" });
+      navigate(`/profile/edit?next=/jobs/${id}`);
       return;
     }
     setApplying(true);
@@ -157,8 +172,15 @@ const JobDetail = () => {
                       <Button disabled className="w-full">
                         Applied
                       </Button>
+                    ) : devProfileComplete === false ? (
+                      <div className="space-y-2">
+                        <Button onClick={handleApply} className="w-full" variant="destructive">
+                          Complete Profile to Apply
+                        </Button>
+                        <p className="text-xs text-muted-foreground text-center">Your profile must be complete before you can apply.</p>
+                      </div>
                     ) : (
-                      <Button onClick={handleApply} disabled={applying} className="w-full">
+                      <Button onClick={handleApply} disabled={applying || devProfileComplete === null} className="w-full">
                         {applying ? "Applying..." : "Apply Now"}
                       </Button>
                     )

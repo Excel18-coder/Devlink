@@ -104,7 +104,12 @@ const Register = () => {
     try {
       await register(email, password, role, fullName);
       toast({ title: "Account created!", description: "Welcome to Devlink 🎉" });
-      navigate("/dashboard");
+      // Developers must complete their profile before doing anything else
+      if (role === "developer") {
+        navigate("/profile/edit?next=/dashboard&new=1");
+      } else {
+        navigate("/dashboard");
+      }
     } catch (err) {
       toast({ title: "Registration failed", description: (err as Error).message, variant: "destructive" });
     } finally {

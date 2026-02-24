@@ -161,11 +161,29 @@ const EditProfile = () => {
       <Navbar />
       <div className="pt-24 pb-16">
         <div className="container mx-auto px-4 max-w-2xl">
+
+          {/* New sign-up welcome banner */}
+          {searchParams.get("new") === "1" && (
+            <div className="mb-6 rounded-xl border border-primary/30 bg-primary/5 px-5 py-4 flex items-start gap-3">
+              <span className="text-2xl mt-0.5">🎉</span>
+              <div>
+                <p className="font-semibold text-foreground text-sm">Welcome to Devlink!</p>
+                <p className="text-sm text-muted-foreground mt-0.5">
+                  Complete your profile below so employers can find and hire you. All fields marked <span className="text-destructive font-medium">Required</span> must be filled in before you can browse jobs or apply.
+                </p>
+              </div>
+            </div>
+          )}
+
           <div className="flex items-center gap-3 mb-8">
-            <Button variant="ghost" size="sm" className="-ml-1" onClick={() => navigate(-1)}>
-              <ArrowLeft className="h-4 w-4 mr-1" /> Back
-            </Button>
-            <h1 className="text-xl sm:text-3xl font-heading font-bold">Edit Profile</h1>
+            {searchParams.get("new") !== "1" && (
+              <Button variant="ghost" size="sm" className="-ml-1" onClick={() => navigate(-1)}>
+                <ArrowLeft className="h-4 w-4 mr-1" /> Back
+              </Button>
+            )}
+            <h1 className="text-xl sm:text-3xl font-heading font-bold">
+              {searchParams.get("new") === "1" ? "Set Up Your Profile" : "Edit Profile"}
+            </h1>
           </div>
 
           {/* Avatar upload */}

@@ -5,6 +5,8 @@ export interface DeveloperProfileFields {
   location?: string;
   rateAmount?: number;
   avatarUrl?: string;
+  githubUrl?: string;
+  resumeUrl?: string;
 }
 
 export const REQUIRED_FIELD_LABELS: Record<string, string> = {
@@ -14,6 +16,8 @@ export const REQUIRED_FIELD_LABELS: Record<string, string> = {
   location:         "Location",
   rateAmount:       "Hourly / project rate",
   avatarUrl:        "Profile photo",
+  githubUrl:        "GitHub profile URL",
+  resumeUrl:        "Resume (PDF)",
 };
 
 export function getMissingProfileFields(profile: DeveloperProfileFields): string[] {
@@ -24,6 +28,8 @@ export function getMissingProfileFields(profile: DeveloperProfileFields): string
   if (!profile.location) missing.push("location");
   if (!profile.rateAmount) missing.push("rateAmount");
   if (!profile.avatarUrl) missing.push("avatarUrl");
+  if (!profile.githubUrl || !profile.githubUrl.trim()) missing.push("githubUrl");
+  if (!profile.resumeUrl || !profile.resumeUrl.trim()) missing.push("resumeUrl");
   return missing;
 }
 

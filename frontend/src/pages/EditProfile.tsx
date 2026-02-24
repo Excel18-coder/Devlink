@@ -34,6 +34,7 @@ const EditProfile = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [resumeUploaded, setResumeUploaded] = useState(false);
   const [form, setForm] = useState({
     bio: "",
     skills: "",
@@ -67,6 +68,7 @@ const EditProfile = () => {
           location: data.location || ""
         });
         if (data.avatarUrl) setAvatarPreview(data.avatarUrl);
+        if (data.resumeUrl) setResumeUploaded(true);
       } catch (err) {
         console.error(err);
       } finally {
@@ -78,6 +80,19 @@ const EditProfile = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // Validate GitHub URL
+    if (form.githubUrl && !/^https?:\/\/github\.com//i.test(form.githubUrl)) {
+      toast({ title: "GitHub URL must start with https://github.com/", variant: "destructive" });
+      return;
+    }
+    if (!form.githubUrl.trim()) {
+      toast({ title: "GitHub URL is required", variant: "destructive" });
+      return;
+    }
+    if (!resumeUploaded) {
+      toast({ title: "Please upload your resume (PDF) before saving", variant: "destructive" });
+      return;
+    }
     setSaving(true);
     try {
       await api("/developers/me", {
@@ -114,6 +129,7 @@ const EditProfile = () => {
     if (!file) return;
     try {
       await uploadFile("/developers/me/resume", file, "resume");
+      setResumeUploaded(true);
       toast({ title: "Resume uploaded successfully!" });
     } catch {
       toast({ title: "Failed to upload resume", variant: "destructive" });
@@ -262,14 +278,16 @@ const EditProfile = () => {
             </div>
 
             <div>
-              <Label htmlFor="github">GitHub URL</Label>
+              <Label htmlFor="github">GitHub URL <span className="text-destructive">*</span></Label>
               <Input
                 id="github"
                 type="url"
                 value={form.githubUrl}
                 onChange={(e) => setForm({ ...form, githubUrl: e.target.value })}
                 placeholder="https://github.com/username"
+                className={!form.githubUrl.trim() ? "border-destructive/50" : ""}
               />
+              <p className="text-xs text-muted-foreground mt-1">Required — must be a valid github.com URL</p>
             </div>
 
             <div>
@@ -283,9 +301,22 @@ const EditProfile = () => {
             </div>
 
             <div>
-              <Label htmlFor="resume">Upload Resume</Label>
-              <Input id="resume" type="file" accept=".pdf,application/pdf" onChange={handleResumeUpload} />
-              <p className="text-xs text-muted-foreground mt-1">PDF only</p>
+              <Label htmlFor="resume">
+                Upload Resume <span className="text-destructive">*</span>
+              </Label>
+              {resumeUploaded && (
+                <p className="text-xs text-green-600 font-medium mb-1.5">✓ Resume uploaded</p>
+              )}
+              <Input
+                id="resume"
+                type="file"
+                accept=".pdf,application/pdf"
+                onChange={handleResumeUpload}
+                className={!resumeUploaded ? "border-destructive/50" : ""}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                {resumeUploaded ? "Upload a new file to replace current resume" : "Required — PDF only"}
+              </p>
             </div>
 
             <Button type="submit" className="w-full" disabled={saving}>

@@ -10,8 +10,12 @@ import { uploadToCloudinary } from "../utils/cloudinaryUpload.js";
 
 const router = Router();
 
+const PAGE_SIZE = 20;
+
 router.get("/", async (req, res) => {
-  const { skill, availability, rateMin, rateMax, experience, search } = req.query;
+  const { skill, availability, rateMin, rateMax, experience, search, page = "1" } = req.query;
+  const pageNum = Math.max(1, Number(page));
+  const skip = (pageNum - 1) * PAGE_SIZE;
 
   const userFilter: Record<string, unknown> = { role: "developer", status: "active" };
   if (search) userFilter.fullName = new RegExp(String(search), "i");
@@ -33,10 +37,16 @@ router.get("/", async (req, res) => {
     delete devFilter.userId;
   }
 
-  const developers = await Developer.find(devFilter).sort({ ratingAvg: -1, yearsExperience: -1 });
+  // fetch one extra to know if more pages exist
+  const developers = await Developer.find(devFilter)
+    .sort({ ratingAvg: -1, yearsExperience: -1 })
+    .skip(skip)
+    .limit(PAGE_SIZE + 1);
+  const hasMore = developers.length > PAGE_SIZE;
+  const page_data = hasMore ? developers.slice(0, PAGE_SIZE) : developers;
   const userMap = new Map(activeUsers.map((u) => [u._id.toString(), u]));
 
-  const mapped = developers
+  const mapped = page_data
     .map((d) => {
       const u = userMap.get(d.userId.toString());
       if (!u) return null;
@@ -60,7 +70,7 @@ router.get("/", async (req, res) => {
     })
     .filter(Boolean);
 
-  return res.json(mapped);
+  return res.json({ developers: mapped, hasMore });
 });
 
 router.get("/:id", async (req, res) => {

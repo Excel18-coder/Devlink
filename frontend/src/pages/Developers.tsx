@@ -30,26 +30,39 @@ const Developers = () => {
   });
   const [developers, setDevelopers] = useState<Developer[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+  const [page, setPage] = useState(1);
+  const [activeSearch, setActiveSearch] = useState("");
   const [search, setSearch] = useState("");
 
   useEffect(() => {
-    fetchDevelopers();
+    doFetch(1, "");
   }, []);
 
-  const fetchDevelopers = async (searchTerm?: string) => {
-    setLoading(true);
+  const doFetch = async (p: number, term: string) => {
+    p === 1 ? setLoading(true) : setLoadingMore(true);
     try {
-      const params = searchTerm ? `?search=${encodeURIComponent(searchTerm)}` : "";
-      const data = await api<Developer[]>(`/developers${params}`);
-      setDevelopers(data);
+      const params = new URLSearchParams({ page: String(p) });
+      if (term) params.set("search", term);
+      const res = await api<{ developers: Developer[]; hasMore: boolean }>(`/developers?${params}`);
+      setDevelopers((prev) => (p === 1 ? res.developers : [...prev, ...res.developers]));
+      setHasMore(res.hasMore);
+      setPage(p);
     } catch (err) {
       console.error(err);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   };
 
-  const handleSearch = () => fetchDevelopers(search);
+  const handleSearch = () => {
+    setActiveSearch(search);
+    doFetch(1, search);
+  };
+
+  const handleLoadMore = () => doFetch(page + 1, activeSearch);
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -137,6 +150,19 @@ const Developers = () => {
             </div>
           )}
 
+          {/* Load More */}
+          {hasMore && !loading && (
+            <div className="flex justify-center mt-10">
+              <Button variant="outline" onClick={handleLoadMore} disabled={loadingMore} className="min-w-40">
+                {loadingMore ? (
+                  <span className="flex items-center gap-2">
+                    <span className="animate-spin inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full" />
+                    Loading more…
+                  </span>
+                ) : "Load More"}
+              </Button>
+            </div>
+          )}
 
         </div>
       </div>

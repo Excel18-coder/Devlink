@@ -9,8 +9,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/lib/api";
-import { Briefcase, FileText, DollarSign, Star, MessageSquare, User } from "lucide-react";
+import { Briefcase, FileText, DollarSign, Star, MessageSquare, User, Layers, Plus, Trash2, ExternalLink, Github, Globe, Pencil } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 
 interface Application {
   id: string;
@@ -53,6 +57,34 @@ interface Review {
   createdAt: string;
 }
 
+interface ShowcaseItem {
+  id: string;
+  title: string;
+  tagline: string;
+  description: string;
+  techStack: string[];
+  projectUrl?: string;
+  repoUrl?: string;
+  imageUrl?: string;
+  category: string;
+  lookingFor: string;
+  status: string;
+  likes: number;
+  createdAt: string;
+}
+
+const EMPTY_SHOWCASE_FORM = {
+  title: "",
+  tagline: "",
+  description: "",
+  techStack: "",
+  projectUrl: "",
+  repoUrl: "",
+  category: "web" as string,
+  lookingFor: "both" as string,
+  status: "active" as string
+};
+
 const statusColor = (s: string) =>
   s === "accepted" || s === "active" || s === "completed" ? "default" :
   s === "rejected" ? "destructive" : "secondary";
@@ -74,19 +106,28 @@ const DeveloperDashboard = () => {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [appStatusFilter, setAppStatusFilter] = useState("all");
   const [loading, setLoading] = useState(true);
+  const [showcases, setShowcases] = useState<ShowcaseItem[]>([]);
+  const [showcaseDialogOpen, setShowcaseDialogOpen] = useState(false);
+  const [editingShowcase, setEditingShowcase] = useState<ShowcaseItem | null>(null);
+  const [showcaseForm, setShowcaseForm] = useState({ ...EMPTY_SHOWCASE_FORM });
+  const [showcaseImageFile, setShowcaseImageFile] = useState<File | null>(null);
+  const [showcaseImagePreview, setShowcaseImagePreview] = useState<string | null>(null);
+  const [showcaseSaving, setShowcaseSaving] = useState(false);
 
   const fetchAll = useCallback(async () => {
     try {
-      const [appsData, contractsData, profileData, reviewsData] = await Promise.all([
+      const [appsData, contractsData, profileData, reviewsData, showcasesData] = await Promise.all([
         api<Application[]>("/applications/me"),
         api<Contract[]>("/contracts"),
         api<DeveloperProfile>(`/developers/${user?.id}`),
-        api<Review[]>("/reviews/me")
+        api<Review[]>("/reviews/me"),
+        api<ShowcaseItem[]>("/showcases/me")
       ]);
       setApplications(appsData);
       setContracts(contractsData);
       setProfile(profileData);
       setReviews(reviewsData);
+      setShowcases(showcasesData);
     } catch (err) {
       console.error(err);
     } finally {
@@ -101,6 +142,106 @@ const DeveloperDashboard = () => {
     try {
       await api(`/applications/${appId}`, { method: "DELETE" });
       toast({ title: "Application withdrawn" });
+      fetchAll();
+    } catch (err) {
+      toast({ title: (err as Error).message, variant: "destructive" });
+    }
+  };
+
+  const openCreateShowcase = () => {
+    setEditingShowcase(null);
+    setShowcaseForm({ ...EMPTY_SHOWCASE_FORM });
+    setShowcaseImageFile(null);
+    setShowcaseImagePreview(null);
+    setShowcaseDialogOpen(true);
+  };
+
+  const openEditShowcase = (item: ShowcaseItem) => {
+    setEditingShowcase(item);
+    setShowcaseForm({
+      title: item.title,
+      tagline: item.tagline,
+      description: item.description,
+      techStack: item.techStack.join(", "),
+      projectUrl: item.projectUrl ?? "",
+      repoUrl: item.repoUrl ?? "",
+      category: item.category,
+      lookingFor: item.lookingFor,
+      status: item.status
+    });
+    setShowcaseImageFile(null);
+    setShowcaseImagePreview(item.imageUrl ?? null);
+    setShowcaseDialogOpen(true);
+  };
+
+  const handleSaveShowcase = async () => {
+    // ── Client-side validation (mirrors backend Zod rules) ──────────────────
+    const techArr = showcaseForm.techStack.split(",").map((s) => s.trim()).filter(Boolean);
+    if (showcaseForm.title.trim().length < 3) {
+      toast({ title: "Title must be at least 3 characters", variant: "destructive" }); return;
+    }
+    if (showcaseForm.tagline.trim().length < 10) {
+      toast({ title: "Tagline must be at least 10 characters", variant: "destructive" }); return;
+    }
+    if (showcaseForm.description.trim().length < 20) {
+      toast({ title: "Description must be at least 20 characters", variant: "destructive" }); return;
+    }
+    if (techArr.length === 0) {
+      toast({ title: "Add at least one technology to the tech stack", variant: "destructive" }); return;
+    }
+    if (showcaseForm.projectUrl && !/^https?:\/\//i.test(showcaseForm.projectUrl)) {
+      toast({ title: "Live demo URL must start with https://", variant: "destructive" }); return;
+    }
+    if (showcaseForm.repoUrl && !/^https?:\/\//i.test(showcaseForm.repoUrl)) {
+      toast({ title: "Repository URL must start with https://", variant: "destructive" }); return;
+    }
+
+    setShowcaseSaving(true);
+    try {
+      const payload = {
+        ...showcaseForm,
+        techStack: techArr,
+        projectUrl: showcaseForm.projectUrl.trim() || undefined,
+        repoUrl: showcaseForm.repoUrl.trim() || undefined
+      };
+      let showcaseId = editingShowcase?.id;
+      if (editingShowcase) {
+        await api(`/showcases/${editingShowcase.id}`, { method: "PATCH", body: payload });
+      } else {
+        const res = await api<{ id: string }>("/showcases", { method: "POST", body: payload });
+        showcaseId = res.id;
+      }
+      // Upload image if selected
+      if (showcaseImageFile && showcaseId) {
+        const fd = new FormData();
+        fd.append("image", showcaseImageFile);
+        const token = localStorage.getItem("accessToken");
+        const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:4000/api";
+        const imgRes = await fetch(`${API_BASE}/showcases/${showcaseId}/image`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+          body: fd
+        });
+        if (!imgRes.ok) {
+          const imgErr = await imgRes.json().catch(() => ({ message: "Image upload failed" }));
+          toast({ title: imgErr.message || "Image upload failed", variant: "destructive" });
+        }
+      }
+      toast({ title: editingShowcase ? "Showcase updated!" : "Showcase created!" });
+      setShowcaseDialogOpen(false);
+      fetchAll();
+    } catch (err) {
+      toast({ title: (err as Error).message || "Something went wrong", variant: "destructive" });
+    } finally {
+      setShowcaseSaving(false);
+    }
+  };
+
+  const handleDeleteShowcase = async (id: string) => {
+    if (!confirm("Delete this showcase? This cannot be undone.")) return;
+    try {
+      await api(`/showcases/${id}`, { method: "DELETE" });
+      toast({ title: "Showcase deleted" });
       fetchAll();
     } catch (err) {
       toast({ title: (err as Error).message, variant: "destructive" });
@@ -160,6 +301,11 @@ const DeveloperDashboard = () => {
               <TabsTrigger value="reviews">
                 Reviews
                 <Badge variant="secondary" className="ml-1 text-xs">{reviews.length}</Badge>
+              </TabsTrigger>
+              <TabsTrigger value="showcase">
+                <Layers className="h-3.5 w-3.5 mr-1" />
+                Showcase
+                <Badge variant="secondary" className="ml-1 text-xs">{showcases.length}</Badge>
               </TabsTrigger>
             </TabsList>
 
@@ -492,7 +638,213 @@ const DeveloperDashboard = () => {
                 )}
               </div>
             </TabsContent>
+            {/* ── SHOWCASE ─────────────────────────────────────────────── */}
+            <TabsContent value="showcase">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-semibold">My Showcase</h3>
+                    <p className="text-sm text-muted-foreground">Present your products to employers and investors</p>
+                  </div>
+                  <Button size="sm" onClick={openCreateShowcase}>
+                    <Plus className="h-4 w-4 mr-1" /> Add Project
+                  </Button>
+                </div>
+
+                {showcases.length === 0 ? (
+                  <Card>
+                    <CardContent className="py-12 text-center">
+                      <Layers className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
+                      <p className="font-medium mb-1">No projects showcased yet</p>
+                      <p className="text-sm text-muted-foreground mb-4">Add your best work to attract employers and investors.</p>
+                      <Button onClick={openCreateShowcase}><Plus className="h-4 w-4 mr-1" /> Add Your First Project</Button>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    {showcases.map((item) => (
+                      <Card key={item.id} className="flex flex-col">
+                        {item.imageUrl && (
+                          <div className="h-36 overflow-hidden rounded-t-lg">
+                            <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover" />
+                          </div>
+                        )}
+                        <CardContent className="pt-4 pb-4 flex flex-col flex-1">
+                          <div className="flex items-start justify-between gap-2 mb-1">
+                            <h4 className="font-semibold text-sm line-clamp-1">{item.title}</h4>
+                            <div className="flex gap-1 shrink-0">
+                              <Badge variant={item.status === "active" ? "default" : "secondary"} className="text-xs capitalize">{item.status}</Badge>
+                            </div>
+                          </div>
+                          <p className="text-xs text-muted-foreground line-clamp-2 mb-3">{item.tagline}</p>
+                          <div className="flex flex-wrap gap-1 mb-3">
+                            {item.techStack.slice(0, 3).map((t) => (
+                              <Badge key={t} variant="outline" className="text-xs">{t}</Badge>
+                            ))}
+                            {item.techStack.length > 3 && <Badge variant="outline" className="text-xs">+{item.techStack.length - 3}</Badge>}
+                          </div>
+                          <div className="mt-auto flex items-center justify-between">
+                            <div className="flex gap-2">
+                              {item.projectUrl && (
+                                <a href={item.projectUrl} target="_blank" rel="noreferrer">
+                                  <Button variant="ghost" size="sm" className="h-7 px-2"><Globe className="h-3.5 w-3.5" /></Button>
+                                </a>
+                              )}
+                              {item.repoUrl && (
+                                <a href={item.repoUrl} target="_blank" rel="noreferrer">
+                                  <Button variant="ghost" size="sm" className="h-7 px-2"><Github className="h-3.5 w-3.5" /></Button>
+                                </a>
+                              )}
+                              <Link to={`/showcase/${item.id}`}>
+                                <Button variant="ghost" size="sm" className="h-7 px-2"><ExternalLink className="h-3.5 w-3.5" /></Button>
+                              </Link>
+                            </div>
+                            <div className="flex gap-1">
+                              <Button variant="outline" size="sm" className="h-7 px-2" onClick={() => openEditShowcase(item)}>
+                                <Pencil className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button variant="destructive" size="sm" className="h-7 px-2" onClick={() => handleDeleteShowcase(item.id)}>
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </TabsContent>
           </Tabs>
+
+          {/* ── Showcase Dialog ───────────────────────────────────────── */}
+          <Dialog open={showcaseDialogOpen} onOpenChange={setShowcaseDialogOpen}>
+            <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>{editingShowcase ? "Edit Showcase" : "Add New Showcase"}</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 py-2">
+                <div className="space-y-1">
+                  <Label>Title *</Label>
+                  <Input
+                    placeholder="My Awesome App"
+                    value={showcaseForm.title}
+                    onChange={(e) => setShowcaseForm((f) => ({ ...f, title: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label>Tagline * <span className="text-xs text-muted-foreground">(min 10 chars)</span></Label>
+                  <Input
+                    placeholder="A short, catchy description of what it does"
+                    value={showcaseForm.tagline}
+                    onChange={(e) => setShowcaseForm((f) => ({ ...f, tagline: e.target.value }))}
+                  />
+                  <p className={`text-xs ${showcaseForm.tagline.length < 10 ? "text-destructive" : "text-muted-foreground"}`}>
+                    {showcaseForm.tagline.length} / 200 characters
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <Label>Description * <span className="text-xs text-muted-foreground">(min 20 chars)</span></Label>
+                  <Textarea
+                    placeholder="Describe the problem it solves, how it works, key features…"
+                    rows={4}
+                    value={showcaseForm.description}
+                    onChange={(e) => setShowcaseForm((f) => ({ ...f, description: e.target.value }))}
+                  />
+                  <p className={`text-xs ${showcaseForm.description.length < 20 ? "text-destructive" : "text-muted-foreground"}`}>
+                    {showcaseForm.description.length} / 2000 characters
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <Label>Tech Stack * <span className="text-xs text-muted-foreground">(comma-separated)</span></Label>
+                  <Input
+                    placeholder="React, Node.js, PostgreSQL"
+                    value={showcaseForm.techStack}
+                    onChange={(e) => setShowcaseForm((f) => ({ ...f, techStack: e.target.value }))}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label>Category</Label>
+                    <Select value={showcaseForm.category} onValueChange={(v) => setShowcaseForm((f) => ({ ...f, category: v }))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="web">Web</SelectItem>
+                        <SelectItem value="mobile">Mobile</SelectItem>
+                        <SelectItem value="api">API / Backend</SelectItem>
+                        <SelectItem value="data">Data</SelectItem>
+                        <SelectItem value="ai">AI / ML</SelectItem>
+                        <SelectItem value="design">Design</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label>Looking For</Label>
+                    <Select value={showcaseForm.lookingFor} onValueChange={(v) => setShowcaseForm((f) => ({ ...f, lookingFor: v }))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="employers">Employers</SelectItem>
+                        <SelectItem value="investors">Investors</SelectItem>
+                        <SelectItem value="both">Both</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <Label>Live Demo URL</Label>
+                  <Input
+                    placeholder="https://myapp.com"
+                    value={showcaseForm.projectUrl}
+                    onChange={(e) => setShowcaseForm((f) => ({ ...f, projectUrl: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label>Repository URL</Label>
+                  <Input
+                    placeholder="https://github.com/you/repo"
+                    value={showcaseForm.repoUrl}
+                    onChange={(e) => setShowcaseForm((f) => ({ ...f, repoUrl: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label>Screenshot / Cover Image</Label>
+                  {showcaseImagePreview && (
+                    <div className="mb-2 rounded-lg overflow-hidden border border-border h-32">
+                      <img src={showcaseImagePreview} alt="preview" className="w-full h-full object-cover" />
+                    </div>
+                  )}
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        setShowcaseImageFile(file);
+                        setShowcaseImagePreview(URL.createObjectURL(file));
+                      }
+                    }}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label>Visibility</Label>
+                    <Select value={showcaseForm.status} onValueChange={(v) => setShowcaseForm((f) => ({ ...f, status: v }))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="active">Public (visible to all)</SelectItem>
+                        <SelectItem value="draft">Draft (hidden)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setShowcaseDialogOpen(false)}>Cancel</Button>
+                <Button onClick={handleSaveShowcase} disabled={showcaseSaving}>
+                  {showcaseSaving ? "Saving…" : editingShowcase ? "Save Changes" : "Publish Showcase"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
       <Footer />

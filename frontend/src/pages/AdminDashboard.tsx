@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { api } from "@/lib/api";
+import { api, API_BASE } from "@/lib/api";
 import { Users, Briefcase, DollarSign, AlertTriangle, Settings, ScrollText, TrendingUp, RefreshCw, Trash2, ShieldCheck, Save, RotateCcw, Building2, CreditCard, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -212,16 +212,47 @@ const AdminDashboard = () => {
     return () => { if (autoRefreshRef.current) clearInterval(autoRefreshRef.current); };
   }, []);  // eslint-disable-line react-hooks/exhaustive-deps
 
-  // SSE for live stat counters
+  // SSE for live stat counters — uses full backend URL so it works in production
   useEffect(() => {
-    const token = localStorage.getItem("accessToken");
-    if (!token) return;
-    const es = new EventSource(`/api/admin/analytics/stream?token=${encodeURIComponent(token)}`);
-    esRef.current = es;
-    es.onmessage = (e) => {
-      try { setLiveStats(JSON.parse(e.data) as LiveStats); } catch { /* ignore */ }
+    let es: EventSource | null = null;
+    let retryTimeout: ReturnType<typeof setTimeout> | null = null;
+    let retryDelay = 3000; // start at 3s, cap at 60s
+    let destroyed = false;
+
+    const connect = () => {
+      if (destroyed) return;
+      const token = localStorage.getItem("accessToken");
+      if (!token) return;
+
+      es = new EventSource(`${API_BASE}/admin/analytics/stream?token=${encodeURIComponent(token)}`);
+      esRef.current = es;
+
+      es.onmessage = (e) => {
+        retryDelay = 3000; // reset backoff on successful message
+        try { setLiveStats(JSON.parse(e.data) as LiveStats); } catch { /* ignore */ }
+      };
+
+      es.onerror = () => {
+        es?.close();
+        es = null;
+        esRef.current = null;
+        if (!destroyed) {
+          retryTimeout = setTimeout(() => {
+            retryDelay = Math.min(retryDelay * 2, 60000);
+            connect();
+          }, retryDelay);
+        }
+      };
     };
-    return () => es.close();
+
+    connect();
+
+    return () => {
+      destroyed = true;
+      if (retryTimeout) clearTimeout(retryTimeout);
+      es?.close();
+      esRef.current = null;
+    };
   }, []);
 
   // Re-fetch users when filters change

@@ -130,23 +130,41 @@ router.get("/analytics/stream", requireAuth, requireRole("admin"), async (_req: 
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
   res.setHeader("Connection", "keep-alive");
+  // Disable Nginx/Render response buffering so data flushes immediately
+  res.setHeader("X-Accel-Buffering", "no");
   res.flushHeaders();
 
+  let closed = false;
+  res.on("close", () => { closed = true; });
+
   const sendSnapshot = async () => {
+    if (closed) return;
     try {
       const [totalUsers, openJobs, activeContracts] = await Promise.all([
         User.countDocuments(),
         Job.countDocuments({ status: "open" }),
         Contract.countDocuments({ status: "active" })
       ]);
+      if (closed) return;
       const data = JSON.stringify({ totalUsers, openJobs, activeContracts, ts: Date.now() });
       res.write(`data: ${data}\n\n`);
     } catch { /* ignore */ }
   };
 
+  // Send a keepalive comment every 25s — prevents Render's 55s proxy idle timeout
+  // from dropping the connection between data snapshots
+  const keepAlive = setInterval(() => {
+    if (closed) return;
+    res.write(": keepalive\n\n");
+  }, 25000);
+
   await sendSnapshot();
   const interval = setInterval(sendSnapshot, 15000);
-  res.on("close", () => clearInterval(interval));
+
+  res.on("close", () => {
+    clearInterval(interval);
+    clearInterval(keepAlive);
+  });
 });
 
 router.get("/users", requireAuth, requireRole("admin"), async (req, res) => {

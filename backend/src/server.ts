@@ -18,6 +18,7 @@ import contractRoutes from "./routes/contractRoutes.js";
 import messageRoutes from "./routes/messageRoutes.js";
 import reviewRoutes from "./routes/reviewRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
+import showcaseRoutes from "./routes/showcaseRoutes.js";
 
 const app = express();
 
@@ -69,6 +70,7 @@ app.use("/api/contracts", contractRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/showcases", showcaseRoutes);
 
 // Health
 app.get("/api/health", (_req, res) => res.json({ status: "ok" }));

@@ -14,7 +14,12 @@ export const env = {
   platformCommissionPct: Number(process.env.PLATFORM_COMMISSION_PCT ?? 10),
   cloudinaryCloudName: process.env.CLOUDINARY_CLOUD_NAME ?? "",
   cloudinaryApiKey: process.env.CLOUDINARY_API_KEY ?? "",
-  cloudinaryApiSecret: process.env.CLOUDINARY_API_SECRET ?? ""
+  cloudinaryApiSecret: process.env.CLOUDINARY_API_SECRET ?? "",
+  smtpHost: process.env.SMTP_HOST ?? "smtp.gmail.com",
+  smtpPort: Number(process.env.SMTP_PORT ?? 587),
+  smtpUser: process.env.SMTP_USER ?? "",
+  smtpPass: process.env.SMTP_PASS ?? "",
+  smtpFrom: process.env.SMTP_FROM ?? "Devlink <no-reply@devlink.com>"
 };
 
 if (!env.mongodbUri) {

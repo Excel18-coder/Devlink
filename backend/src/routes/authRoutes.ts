@@ -1,24 +1,85 @@
 import { Router, Response } from "express";
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
 import { User } from "../models/User.js";
 import { Developer } from "../models/Developer.js";
 import { Employer } from "../models/Employer.js";
 import { RefreshToken } from "../models/RefreshToken.js";
+import { EmailVerification } from "../models/EmailVerification.js";
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from "../utils/tokens.js";
 import { validate } from "../middleware/validate.js";
-import { registerSchema, loginSchema } from "../schemas/authSchemas.js";
+import { sendOtpSchema, verifyOtpSchema, registerSchema, loginSchema } from "../schemas/authSchemas.js";
 import { AuthRequest, requireAuth } from "../middleware/auth.js";
+import { sendVerificationEmail } from "../services/emailService.js";
 
 const router = Router();
 
-router.post("/register", validate(registerSchema), async (req, res) => {
-  const { email, password, role, fullName } = req.body;
+// ─── Step 1: Send OTP ────────────────────────────────────────────────────────
+router.post("/send-otp", validate(sendOtpSchema), async (req, res) => {
+  const email = (req.body.email as string).toLowerCase();
 
-  const existing = await User.findOne({ email: email.toLowerCase() });
+  const existing = await User.findOne({ email });
+  if (existing) return res.status(400).json({ message: "Email already in use" });
+
+  // Delete any previous OTPs for this email
+  await EmailVerification.deleteMany({ email });
+
+  const otp = crypto.randomInt(100000, 999999).toString();
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+  await EmailVerification.create({ email, otp, expiresAt, verified: false });
+
+  try {
+    await sendVerificationEmail(email, otp);
+  } catch (err) {
+    console.error("Failed to send verification email:", err);
+    return res.status(500).json({ message: "Failed to send verification email. Check SMTP settings." });
+  }
+
+  return res.json({ message: "Verification code sent to your email" });
+});
+
+// ─── Step 2: Verify OTP ───────────────────────────────────────────────────────
+router.post("/verify-otp", validate(verifyOtpSchema), async (req, res) => {
+  const email = (req.body.email as string).toLowerCase();
+  const { otp } = req.body as { otp: string };
+
+  const record = await EmailVerification.findOne({ email, verified: false });
+  if (!record) return res.status(400).json({ message: "No pending verification for this email" });
+  if (record.expiresAt < new Date()) {
+    await EmailVerification.deleteOne({ _id: record._id });
+    return res.status(400).json({ message: "Verification code expired. Please request a new one." });
+  }
+  if (record.otp !== otp) return res.status(400).json({ message: "Incorrect verification code" });
+
+  record.verified = true;
+  await record.save();
+
+  return res.json({ message: "Email verified successfully" });
+});
+
+// ─── Step 3: Register ─────────────────────────────────────────────────────────
+router.post("/register", validate(registerSchema), async (req, res) => {
+  const { email, password, role, fullName } = req.body as {
+    email: string;
+    password: string;
+    role: "developer" | "employer";
+    fullName?: string;
+  };
+
+  const normalizedEmail = email.toLowerCase();
+
+  // Ensure email was verified via OTP
+  const verification = await EmailVerification.findOne({ email: normalizedEmail, verified: true });
+  if (!verification) {
+    return res.status(403).json({ message: "Email not verified. Please complete email verification first." });
+  }
+
+  const existing = await User.findOne({ email: normalizedEmail });
   if (existing) return res.status(400).json({ message: "Email already in use" });
 
   const hash = await bcrypt.hash(password, 10);
-  const user = await User.create({ email, passwordHash: hash, role, fullName: fullName ?? undefined });
+  const user = await User.create({ email: normalizedEmail, passwordHash: hash, role, fullName: fullName ?? undefined });
   const userId = user._id.toString();
 
   if (role === "developer") {
@@ -26,6 +87,9 @@ router.post("/register", validate(registerSchema), async (req, res) => {
   } else if (role === "employer") {
     await Employer.create({ userId: user._id, companyName: fullName ?? "Company" });
   }
+
+  // Clean up the verification record
+  await EmailVerification.deleteOne({ _id: verification._id });
 
   const accessToken = signAccessToken({ id: userId, role });
   const refreshToken = signRefreshToken({ id: userId });

@@ -22,6 +22,7 @@ const Footer = () => {
             <h4 className="font-heading font-semibold text-secondary-foreground mb-4 text-sm">For Developers</h4>
             <ul className="space-y-2.5">
               <li><Link to="/jobs" className="text-sm text-secondary-foreground/50 hover:text-primary transition-colors">Browse Jobs</Link></li>
+              <li><Link to="/showcase" className="text-sm text-secondary-foreground/50 hover:text-primary transition-colors">Showcase</Link></li>
               <li><Link to="/register" className="text-sm text-secondary-foreground/50 hover:text-primary transition-colors">Create Profile</Link></li>
               <li><Link to="/resources" className="text-sm text-secondary-foreground/50 hover:text-primary transition-colors">Resources</Link></li>
             </ul>
@@ -49,6 +50,9 @@ const Footer = () => {
         <div className="border-t border-secondary-foreground/10 pt-8 flex flex-col sm:flex-row justify-between items-center gap-4">
           <p className="text-xs text-secondary-foreground/40">
             © 2026 Devlink. All rights reserved.
+          </p>
+          <p className="text-xs text-secondary-foreground/40 text-center">
+            Developed by <span className="text-primary font-medium">Vector Labs</span> · 011 748 7554
           </p>
           <div className="flex gap-6">
             <Link to="/privacy" className="text-xs text-secondary-foreground/40 hover:text-primary transition-colors">Privacy</Link>

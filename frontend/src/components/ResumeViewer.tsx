@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { FileText, Download, ExternalLink, Loader2, AlertCircle } from "lucide-react";
+import { FileText, Download, ExternalLink } from "lucide-react";
+import { API_BASE } from "@/lib/api";
 
 interface ResumeViewerProps {
   url: string;
@@ -12,60 +13,35 @@ interface ResumeViewerProps {
 
 /**
  * How it works:
- * Cloudinary serves PDFs with `Content-Disposition: attachment`, which makes
- * the browser download the file even inside an iframe. However, the
- * Content-Disposition header only applies to browser navigations — a
- * programmatic `fetch()` call ignores it completely.
  *
- * So we:
- *  1. fetch() the PDF bytes (Content-Disposition is irrelevant here)
- *  2. Turn the bytes into a local blob: URL via URL.createObjectURL()
- *  3. Load that blob URL in the iframe — browser renders it inline because
- *     blob: URLs are local resources with no headers to override them.
+ * Cloudinary serves uploaded PDFs with two problems:
+ *   1. Content-Disposition: attachment  →  browser forces a download
+ *   2. No CORS headers on raw uploads   →  browser blocks fetch() entirely
+ *
+ * Both are server-side headers; client-side tricks (blob URLs, Google Viewer,
+ * etc.) cannot reliably work around them.
+ *
+ * Fix: route the PDF through our own backend (/api/proxy/pdf?url=...).
+ *   • The backend fetches from Cloudinary server-to-server (no CORS issue).
+ *   • It re-serves the bytes with Content-Disposition: inline.
+ *   • The iframe points at our own origin, so the browser renders it inline.
+ *
+ * No fetch(), no blob URLs, no async state — just an iframe src.
  */
 export default function ResumeViewer({ url, label = "View Resume", size = "sm", className }: ResumeViewerProps) {
-  const [open, setOpen]       = useState(false);
-  const [blobUrl, setBlobUrl] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError]     = useState(false);
+  const [open, setOpen] = useState(false);
 
-  const handleOpen = async () => {
-    setError(false);
-    setOpen(true);
-
-    // Only fetch once — reuse the blob URL on subsequent opens
-    if (blobUrl) return;
-
-    setLoading(true);
-    try {
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const blob = await res.blob();
-      setBlobUrl(URL.createObjectURL(blob));
-    } catch {
-      setError(true);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleOpenChange = (next: boolean) => {
-    setOpen(next);
-    // Revoke the blob URL when the dialog is closed to free memory
-    if (!next && blobUrl) {
-      URL.revokeObjectURL(blobUrl);
-      setBlobUrl(null);
-    }
-  };
+  // Build the proxy URL once — the iframe loads it directly, no client fetch needed
+  const proxyUrl = `${API_BASE}/proxy/pdf?url=${encodeURIComponent(url)}`;
 
   return (
     <>
-      <Button variant="outline" size={size} className={className} onClick={handleOpen}>
+      <Button variant="outline" size={size} className={className} onClick={() => setOpen(true)}>
         <FileText className="h-4 w-4 mr-1.5" />
         {label}
       </Button>
 
-      <Dialog open={open} onOpenChange={handleOpenChange}>
+      <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-4xl w-[95vw] h-[90dvh] flex flex-col p-0 gap-0">
           <DialogHeader className="flex flex-row items-center justify-between px-4 py-3 border-b shrink-0 gap-3">
             <DialogTitle className="text-base font-semibold flex items-center gap-2">
@@ -88,44 +64,21 @@ export default function ResumeViewer({ url, label = "View Resume", size = "sm", 
             </div>
           </DialogHeader>
 
+          {/* The iframe points at our own backend proxy — renders inline, no download */}
           <div className="relative flex-1 overflow-hidden bg-muted/30">
-            {/* Fetching bytes */}
-            {loading && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 z-10">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                <p className="text-sm text-muted-foreground">Loading resume…</p>
-              </div>
-            )}
-
-            {/* Fetch failed */}
-            {error && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 z-10 px-4 text-center">
-                <AlertCircle className="h-10 w-10 text-destructive/50" />
-                <p className="text-sm text-muted-foreground max-w-xs">
-                  Could not load the resume. You can still open or download it directly.
-                </p>
-                <a href={url} target="_blank" rel="noopener noreferrer">
-                  <Button size="sm" variant="outline">
-                    <ExternalLink className="h-4 w-4 mr-1.5" />
-                    Open in New Tab
-                  </Button>
-                </a>
-              </div>
-            )}
-
-            {/* Blob URL loaded — browser renders inline, no Content-Disposition conflict */}
-            {blobUrl && !error && (
-              <iframe
-                src={blobUrl}
-                title="Resume"
-                className="w-full h-full border-0"
-                allow="fullscreen"
-              />
-            )}
+            <iframe
+              key={proxyUrl}
+              src={open ? proxyUrl : undefined}
+              title="Resume"
+              className="w-full h-full border-0"
+              allow="fullscreen"
+              onError={() => {/* handled by browser's built-in PDF error UI */}}
+            />
           </div>
         </DialogContent>
       </Dialog>
     </>
   );
 }
+
 

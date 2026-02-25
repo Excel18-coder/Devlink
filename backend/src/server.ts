@@ -11,6 +11,7 @@ import { errorHandler } from "./middleware/error.js";
 import { AdminConfig } from "./models/AdminConfig.js";
 
 import authRoutes from "./routes/authRoutes.js";
+import proxyRoutes from "./routes/proxyRoutes.js";
 import developerRoutes from "./routes/developerRoutes.js";
 import employerRoutes from "./routes/employerRoutes.js";
 import jobRoutes from "./routes/jobRoutes.js";
@@ -77,6 +78,7 @@ app.use(async (req, res, next) => {
 });
 
 // Routes
+app.use("/api/proxy", proxyRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/developers", developerRoutes);
 app.use("/api/employers", employerRoutes);

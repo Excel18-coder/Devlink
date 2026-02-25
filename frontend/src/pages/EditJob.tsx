@@ -98,12 +98,16 @@ const EditJob = () => {
           location: form.location || undefined
         }
       });
-      // Also update status if it changed
+      // Update status separately (backend keeps status on a dedicated endpoint)
       await api(`/jobs/${id}/status`, { method: "PATCH", body: { status: form.status } });
       toast({ title: "Job updated successfully!" });
       navigate("/dashboard");
     } catch (err) {
-      toast({ title: (err as Error).message || "Failed to update job", variant: "destructive" });
+      toast({
+        title: "Failed to update job",
+        description: (err as Error).message || "Something went wrong. Please try again.",
+        variant: "destructive"
+      });
     } finally {
       setSaving(false);
     }

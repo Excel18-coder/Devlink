@@ -8,10 +8,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/contexts/AuthContext";
-import { api } from "@/lib/api";
+import { api, API_BASE } from "@/lib/api";
 import { getMissingProfileFields } from "@/lib/profileUtils";
 import ProfileGate from "@/components/ProfileGate";
-import { Briefcase, FileText, DollarSign, Star, MessageSquare, User, Layers, Plus, Trash2, ExternalLink, Github, Globe, Pencil, BarChart3 } from "lucide-react";
+import { Briefcase, FileText, DollarSign, Star, MessageSquare, User, Layers, Plus, Trash2, ExternalLink, Github, Globe, Pencil, BarChart3, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -227,7 +227,6 @@ const DeveloperDashboard = () => {
         const fd = new FormData();
         fd.append("image", showcaseImageFile);
         const token = localStorage.getItem("accessToken");
-        const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:4000/api";
         const imgRes = await fetch(`${API_BASE}/showcases/${showcaseId}/image`, {
           method: "POST",
           headers: { Authorization: `Bearer ${token}` },

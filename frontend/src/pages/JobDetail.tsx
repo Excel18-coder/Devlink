@@ -5,6 +5,8 @@ import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -37,6 +39,8 @@ const JobDetail = () => {
   const [loading, setLoading] = useState(true);
   const [applying, setApplying] = useState(false);
   const [applied, setApplied] = useState(false);
+  const [showApplyForm, setShowApplyForm] = useState(false);
+  const [coverLetter, setCoverLetter] = useState("");
   const [devProfileComplete, setDevProfileComplete] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -61,7 +65,7 @@ const JobDetail = () => {
       .catch(() => setDevProfileComplete(false));
   }, [user]);
 
-  const handleApply = async () => {
+  const openApplyForm = () => {
     if (!user) {
       toast({ title: "Please log in to apply", variant: "destructive" });
       return;
@@ -71,11 +75,17 @@ const JobDetail = () => {
       navigate(`/profile/edit?next=/jobs/${id}`);
       return;
     }
+    setShowApplyForm(true);
+  };
+
+  const handleApply = async (e: React.FormEvent) => {
+    e.preventDefault();
     setApplying(true);
     try {
-      await api(`/applications/${id}`, { method: "POST", body: {} });
-      toast({ title: "Application submitted!" });
+      await api(`/applications/${id}`, { method: "POST", body: { coverLetter: coverLetter.trim() || undefined } });
+      toast({ title: "Application submitted!", description: "The employer will review your application shortly." });
       setApplied(true);
+      setShowApplyForm(false);
     } catch (err) {
       toast({ title: "Failed to apply", description: (err as Error).message, variant: "destructive" });
     } finally {
@@ -178,18 +188,38 @@ const JobDetail = () => {
                       </div>
                     ) : applied ? (
                       <Button disabled className="w-full">
-                        Applied
+                        ✓ Applied
                       </Button>
                     ) : devProfileComplete === false ? (
                       <div className="space-y-2">
-                        <Button onClick={handleApply} className="w-full" variant="destructive">
+                        <Button onClick={openApplyForm} className="w-full" variant="destructive">
                           Complete Profile to Apply
                         </Button>
                         <p className="text-xs text-muted-foreground text-center">Your profile must be complete before you can apply.</p>
                       </div>
+                    ) : showApplyForm ? (
+                      <form onSubmit={handleApply} className="space-y-3">
+                        <div>
+                          <Label htmlFor="coverLetter" className="text-sm font-medium">Cover Letter <span className="text-muted-foreground font-normal">(optional)</span></Label>
+                          <Textarea
+                            id="coverLetter"
+                            value={coverLetter}
+                            onChange={(e) => setCoverLetter(e.target.value)}
+                            placeholder="Introduce yourself and explain why you're a great fit..."
+                            rows={5}
+                            className="mt-1 text-sm"
+                          />
+                        </div>
+                        <Button type="submit" className="w-full" disabled={applying}>
+                          {applying ? "Submitting…" : "Submit Application"}
+                        </Button>
+                        <Button type="button" variant="ghost" className="w-full text-sm" onClick={() => setShowApplyForm(false)}>
+                          Cancel
+                        </Button>
+                      </form>
                     ) : (
-                      <Button onClick={handleApply} disabled={applying || devProfileComplete === null} className="w-full">
-                        {applying ? "Applying..." : "Apply Now"}
+                      <Button onClick={openApplyForm} disabled={devProfileComplete === null} className="w-full">
+                        Apply Now
                       </Button>
                     )
                   ) : user?.role === "employer" && user.id === job.employerId ? (

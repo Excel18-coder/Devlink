@@ -91,12 +91,12 @@ const EditProfile = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     // Validate GitHub URL
-    if (form.githubUrl && !/^https?:\/\/github\.com//i.test(form.githubUrl)) {
-      toast({ title: "GitHub URL must start with https://github.com/", variant: "destructive" });
-      return;
-    }
     if (!form.githubUrl.trim()) {
       toast({ title: "GitHub URL is required", variant: "destructive" });
+      return;
+    }
+    if (!form.githubUrl.toLowerCase().startsWith("https://github.com/")) {
+      toast({ title: "GitHub URL must start with https://github.com/", variant: "destructive" });
       return;
     }
     if (!resumeUploaded) {

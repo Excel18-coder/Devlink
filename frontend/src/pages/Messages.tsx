@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSearchParams } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
 
 interface Conversation {
   id: string;
@@ -23,12 +24,14 @@ interface Message {
 
 const Messages = () => {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConv, setSelectedConv] = useState<string | null>(null);
   const [pendingRecipient, setPendingRecipient] = useState<{ id: string; name: string } | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
+  const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
   const [mobileView, setMobileView] = useState<"list" | "thread">("list");
 
@@ -81,8 +84,9 @@ const Messages = () => {
   };
 
   const handleSend = async () => {
-    if (!newMessage.trim()) return;
+    if (!newMessage.trim() || sending) return;
 
+    setSending(true);
     try {
       if (pendingRecipient) {
         // First message — creates the conversation
@@ -108,7 +112,9 @@ const Messages = () => {
       setNewMessage("");
       fetchMessages(selectedConv);
     } catch (err) {
-      console.error(err);
+      toast({ title: "Failed to send message", description: (err as Error).message, variant: "destructive" });
+    } finally {
+      setSending(false);
     }
   };
 
@@ -211,15 +217,17 @@ const Messages = () => {
                       type="text"
                       value={newMessage}
                       onChange={(e) => setNewMessage(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && handleSend()}
+                      onKeyDown={(e) => e.key === "Enter" && !sending && handleSend()}
                       placeholder="Type a message..."
                       className="flex-1 px-3 py-2 border rounded-lg bg-background text-foreground"
+                      disabled={sending}
                     />
                     <button
                       onClick={handleSend}
-                      className="px-4 py-2 bg-primary text-primary-foreground rounded-lg"
+                      disabled={sending || !newMessage.trim()}
+                      className="px-4 py-2 bg-primary text-primary-foreground rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      Send
+                      {sending ? "…" : "Send"}
                     </button>
                   </div>
                 )}

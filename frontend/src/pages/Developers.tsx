@@ -41,7 +41,7 @@ const Developers = () => {
   }, []);
 
   const doFetch = async (p: number, term: string) => {
-    p === 1 ? setLoading(true) : setLoadingMore(true);
+    if (p === 1) { setLoading(true); } else { setLoadingMore(true); }
     try {
       const params = new URLSearchParams({ page: String(p) });
       if (term) params.set("search", term);

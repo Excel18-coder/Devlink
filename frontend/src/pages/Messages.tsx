@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { ArrowLeft } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -35,11 +35,7 @@ const Messages = () => {
   const [loading, setLoading] = useState(true);
   const [mobileView, setMobileView] = useState<"list" | "thread">("list");
 
-  useEffect(() => {
-    fetchConversations();
-  }, []);
-
-  const fetchConversations = async (autoSelectRecipientId?: string) => {
+  const fetchConversations = useCallback(async (autoSelectRecipientId?: string) => {
     try {
       const data = await api<Conversation[]>("/messages/conversations");
       setConversations(data);
@@ -66,7 +62,12 @@ const Messages = () => {
     } finally {
       setLoading(false);
     }
-  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    fetchConversations();
+  }, [fetchConversations]);
 
   useEffect(() => {
     if (selectedConv) {

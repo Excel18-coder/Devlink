@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { MapPin, Star, Github, ExternalLink, MessageSquare, ArrowLeft } from "lucide-react";
+import ResumeViewer from "@/components/ResumeViewer";
 
 interface Developer {
   id: string;
@@ -161,11 +162,7 @@ const DeveloperProfile = () => {
                       </a>
                     ))}
                     {developer.resumeUrl && (
-                      <a href={developer.resumeUrl} target="_blank" rel="noopener noreferrer">
-                        <Button variant="outline" size="sm">
-                          Resume
-                        </Button>
-                      </a>
+                      <ResumeViewer url={developer.resumeUrl} />
                     )}
                   </div>
                 </CardContent>

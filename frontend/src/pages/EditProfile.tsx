@@ -12,6 +12,7 @@ import { api, uploadFile } from "@/lib/api";
 import { markProfileComplete } from "@/components/DeveloperGuard";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, CheckCircle2, Loader2, Upload, FileText, ExternalLink } from "lucide-react";
+import ResumeViewer from "@/components/ResumeViewer";
 
 interface Profile {
   bio: string;
@@ -368,16 +369,7 @@ const EditProfile = () => {
               </div>
 
               {resumeUrl && (
-                <a
-                  href={resumeUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-sm text-primary hover:underline"
-                >
-                  <FileText className="h-4 w-4 shrink-0" />
-                  View current resume
-                  <ExternalLink className="h-3.5 w-3.5" />
-                </a>
+                <ResumeViewer url={resumeUrl} label="View current resume" />
               )}
 
               <div className="flex items-center gap-3">

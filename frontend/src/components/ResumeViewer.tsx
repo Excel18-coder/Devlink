@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { FileText, Download, ExternalLink } from "lucide-react";
-import { API_BASE } from "@/lib/api";
 
 interface ResumeViewerProps {
   url: string;
@@ -14,25 +13,32 @@ interface ResumeViewerProps {
 /**
  * How it works:
  *
- * Cloudinary serves uploaded PDFs with two problems:
- *   1. Content-Disposition: attachment  →  browser forces a download
- *   2. No CORS headers on raw uploads   →  browser blocks fetch() entirely
+ * Cloudinary uploads PDFs as "raw" resources and forces
+ * `Content-Disposition: attachment`, which makes the browser download
+ * the file even inside an <iframe>.
  *
- * Both are server-side headers; client-side tricks (blob URLs, Google Viewer,
- * etc.) cannot reliably work around them.
+ * Fix: Cloudinary supports a `fl_inline` delivery flag in the URL path.
+ * Inserting it changes the response header to
+ * `Content-Disposition: inline`, so the browser's built-in PDF viewer
+ * renders the file directly inside the iframe — no fetch(), no proxy,
+ * no backend roundtrip needed.
  *
- * Fix: route the PDF through our own backend (/api/proxy/pdf?url=...).
- *   • The backend fetches from Cloudinary server-to-server (no CORS issue).
- *   • It re-serves the bytes with Content-Disposition: inline.
- *   • The iframe points at our own origin, so the browser renders it inline.
- *
- * No fetch(), no blob URLs, no async state — just an iframe src.
+ * Note: the iframe loads the URL as a navigation request, so CORS
+ * headers are irrelevant here (CORS only applies to fetch/XHR calls).
  */
+
+/** Insert Cloudinary's fl_inline delivery flag into a raw-upload URL. */
+function toInlineUrl(url: string): string {
+  if (!url.includes("res.cloudinary.com")) return url;
+  // Replace /upload/ with /upload/fl_inline/ only if not already present
+  return url.replace(/\/upload\/(?!fl_inline)/, "/upload/fl_inline/");
+}
+
 export default function ResumeViewer({ url, label = "View Resume", size = "sm", className }: ResumeViewerProps) {
   const [open, setOpen] = useState(false);
 
-  // Build the proxy URL once — the iframe loads it directly, no client fetch needed
-  const proxyUrl = `${API_BASE}/proxy/pdf?url=${encodeURIComponent(url)}`;
+  // Transform once — the iframe navigates directly to this URL
+  const inlineUrl = toInlineUrl(url);
 
   return (
     <>
@@ -64,15 +70,14 @@ export default function ResumeViewer({ url, label = "View Resume", size = "sm", 
             </div>
           </DialogHeader>
 
-          {/* The iframe points at our own backend proxy — renders inline, no download */}
+          {/* fl_inline URL → browser PDF viewer renders inline, no download */}
           <div className="relative flex-1 overflow-hidden bg-muted/30">
             <iframe
-              key={proxyUrl}
-              src={open ? proxyUrl : undefined}
+              key={inlineUrl}
+              src={open ? inlineUrl : undefined}
               title="Resume"
               className="w-full h-full border-0"
               allow="fullscreen"
-              onError={() => {/* handled by browser's built-in PDF error UI */}}
             />
           </div>
         </DialogContent>

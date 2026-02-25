@@ -10,6 +10,17 @@ import { useAuth } from "@/contexts/AuthContext";
 import { MapPin, Star, Github, ExternalLink, MessageSquare, ArrowLeft } from "lucide-react";
 import ResumeViewer from "@/components/ResumeViewer";
 
+/** Returns a readable label for a portfolio link.
+ *  Single link → "Portfolio"; multiple → hostname (e.g. "dribbble.com") */
+function portfolioLabel(url: string, total: number): string {
+  if (total === 1) return "Portfolio";
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return "Portfolio";
+  }
+}
+
 interface Developer {
   id: string;
   fullName: string;
@@ -153,11 +164,11 @@ const DeveloperProfile = () => {
                         </Button>
                       </a>
                     )}
-                    {developer.portfolioLinks?.map((link, i) => (
-                      <a key={i} href={link} target="_blank" rel="noopener noreferrer">
+                    {developer.portfolioLinks?.map((link) => (
+                      <a key={link} href={link} target="_blank" rel="noopener noreferrer">
                         <Button variant="outline" size="sm">
                           <ExternalLink className="h-4 w-4 mr-2" />
-                          Portfolio
+                          {portfolioLabel(link, developer.portfolioLinks!.length)}
                         </Button>
                       </a>
                     ))}

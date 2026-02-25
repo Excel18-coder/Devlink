@@ -13,6 +13,17 @@ import { Briefcase, FileText, DollarSign, Star, MessageSquare, User, Layers, Plu
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import ResumeViewer from "@/components/ResumeViewer";
+
+/** Returns a readable label for a portfolio link.
+ *  Single link → "Portfolio"; multiple → hostname (e.g. "dribbble.com") */
+function portfolioLabel(url: string, total: number): string {
+  if (total === 1) return "Portfolio";
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return "Portfolio";
+  }
+}
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -547,9 +558,11 @@ const DeveloperDashboard = () => {
                           <Button variant="outline" size="sm">GitHub</Button>
                         </a>
                       )}
-                      {(profile.portfolioLinks ?? []).map((link, i) => (
-                        <a key={i} href={link} target="_blank" rel="noreferrer">
-                          <Button variant="outline" size="sm">Portfolio {i + 1}</Button>
+                      {(profile.portfolioLinks ?? []).map((link) => (
+                        <a key={link} href={link} target="_blank" rel="noreferrer">
+                          <Button variant="outline" size="sm">
+                            {portfolioLabel(link, (profile.portfolioLinks ?? []).length)}
+                          </Button>
                         </a>
                       ))}
                     </div>

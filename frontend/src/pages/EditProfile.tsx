@@ -11,7 +11,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { api, uploadFile } from "@/lib/api";
 import { markProfileComplete } from "@/components/DeveloperGuard";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, CheckCircle2, Loader2, Upload, FileText, ExternalLink } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Loader2, Upload, FileText, ExternalLink, Plus, X } from "lucide-react";
 import ResumeViewer from "@/components/ResumeViewer";
 
 interface Profile {
@@ -44,7 +44,7 @@ const EditProfile = () => {
     bio: "",
     skills: "",
     yearsExperience: 0,
-    portfolioLinks: "",
+    portfolioLinks: [] as string[],
     githubUrl: "",
     availability: "contract",
     rateType: "hourly",
@@ -68,7 +68,7 @@ const EditProfile = () => {
           bio: data.bio || "",
           skills: data.skills?.join(", ") || "",
           yearsExperience: data.yearsExperience || 0,
-          portfolioLinks: data.portfolioLinks?.join(", ") || "",
+          portfolioLinks: data.portfolioLinks || [],
           githubUrl: data.githubUrl || "",
           availability: data.availability || "contract",
           rateType: data.rateType || "hourly",
@@ -115,10 +115,7 @@ const EditProfile = () => {
             .map((s) => s.trim())
             .filter(Boolean),
           yearsExperience: form.yearsExperience,
-          portfolioLinks: form.portfolioLinks
-            .split(",")
-            .map((s) => s.trim())
-            .filter(Boolean),
+          portfolioLinks: form.portfolioLinks.map((s) => s.trim()).filter(Boolean),
           githubUrl: form.githubUrl || undefined,
           availability: form.availability,
           rateType: form.rateType,
@@ -342,16 +339,52 @@ const EditProfile = () => {
             </div>
 
             <div>
-              <Label htmlFor="portfolio">
+              <Label>
                 Portfolio Links{" "}
-                <span className="text-muted-foreground font-normal text-xs">(comma separated, optional)</span>
+                <span className="text-muted-foreground font-normal text-xs">(optional)</span>
               </Label>
-              <Input
-                id="portfolio"
-                value={form.portfolioLinks}
-                onChange={(e) => setForm({ ...form, portfolioLinks: e.target.value })}
-                placeholder="https://mysite.com, https://dribbble.com/me"
-              />
+              <div className="space-y-2 mt-1.5">
+                {form.portfolioLinks.map((link, i) => (
+                  <div key={i} className="flex gap-2">
+                    <Input
+                      type="url"
+                      value={link}
+                      onChange={(e) => {
+                        const next = [...form.portfolioLinks];
+                        next[i] = e.target.value;
+                        setForm({ ...form, portfolioLinks: next });
+                      }}
+                      placeholder="https://mysite.com"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="shrink-0 text-muted-foreground hover:text-destructive"
+                      onClick={() =>
+                        setForm({
+                          ...form,
+                          portfolioLinks: form.portfolioLinks.filter((_, j) => j !== i),
+                        })
+                      }
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5"
+                  onClick={() =>
+                    setForm({ ...form, portfolioLinks: [...form.portfolioLinks, ""] })
+                  }
+                >
+                  <Plus className="h-4 w-4" />
+                  Add Portfolio Link
+                </Button>
+              </div>
             </div>
 
             {/* Resume card */}

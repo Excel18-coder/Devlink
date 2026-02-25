@@ -24,6 +24,10 @@ function writeCache(userId: string, missing: string[]) {
 export function invalidateProfileCache(userId: string) {
   sessionStorage.removeItem(`devlink_pmiss_${userId}`);
 }
+/** Call after a successful profile save so the guard skips the next re-fetch. */
+export function markProfileComplete(userId: string) {
+  writeCache(userId, []);
+}
 
 /**
  * Route-level guard for developer-only pages.

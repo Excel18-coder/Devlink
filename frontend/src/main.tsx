@@ -6,3 +6,12 @@ import App from "./App.tsx";
 import "./index.css";
 
 createRoot(document.getElementById("root")!).render(<App />);
+
+// Fade out the pre-render loader once React has mounted
+requestAnimationFrame(() => {
+  const loader = document.getElementById("root-loader");
+  if (loader) {
+    loader.classList.add("done");
+    setTimeout(() => loader.remove(), 250);
+  }
+});

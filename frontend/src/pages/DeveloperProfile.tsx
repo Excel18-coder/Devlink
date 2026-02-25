@@ -143,7 +143,7 @@ const DeveloperProfile = () => {
                     </div>
                   </div>
 
-                  <div className="flex gap-3">
+                  <div className="flex flex-wrap gap-2 sm:gap-3">
                     {developer.githubUrl && (
                       <a href={developer.githubUrl} target="_blank" rel="noopener noreferrer">
                         <Button variant="outline" size="sm">

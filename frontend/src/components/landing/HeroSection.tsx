@@ -33,7 +33,7 @@ const HeroSection = () => {
 
           {/* Heading */}
           <h1
-            className="text-[1.35rem] leading-snug sm:text-5xl lg:text-6xl font-heading font-bold text-secondary-foreground mb-3 sm:mb-6 animate-fade-in"
+            className="text-2xl leading-snug sm:text-5xl lg:text-6xl font-heading font-bold text-secondary-foreground mb-3 sm:mb-6 animate-fade-in"
             style={{ animationDelay: "0.1s" }}
           >
             Hire the world&apos;s best{" "}
@@ -42,7 +42,7 @@ const HeroSection = () => {
 
           {/* Sub-text */}
           <p
-            className="text-xs sm:text-xl text-secondary-foreground/60 max-w-xl mb-4 sm:mb-8 mx-auto sm:mx-0 animate-fade-in"
+            className="text-sm sm:text-xl text-secondary-foreground/60 max-w-xl mb-4 sm:mb-8 mx-auto sm:mx-0 animate-fade-in"
             style={{ animationDelay: "0.2s" }}
           >
             Connect with vetted developers for remote, contract, and full-time roles.
@@ -81,7 +81,7 @@ const HeroSection = () => {
             <input
               type="text"
               placeholder="Search by skill: React, Python, Go..."
-              className="w-full pl-12 pr-4 py-3.5 rounded-xl bg-secondary-foreground/5 border border-secondary-foreground/10 text-secondary-foreground placeholder:text-secondary-foreground/30 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/30 transition-all font-body text-sm sm:text-base"
+              className="w-full pl-12 pr-4 py-3.5 rounded-xl bg-secondary-foreground/5 border border-secondary-foreground/10 text-secondary-foreground placeholder:text-secondary-foreground/30 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/30 transition-all font-body text-base"
             />
           </div>
         </div>

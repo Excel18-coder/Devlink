@@ -4,6 +4,7 @@
 
 @layer base {
   html {
+    font-size: 16px; /* anchor for rem units; prevents iOS zoom on inputs */
     scroll-behavior: smooth;
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
@@ -12,6 +13,7 @@
   html, body {
     overflow-x: hidden;
     max-width: 100vw;
+    min-height: 100dvh;
   }
 
   /* Remove 300ms tap delay and highlight flash on all interactive elements */

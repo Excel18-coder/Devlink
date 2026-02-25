@@ -173,7 +173,7 @@ const Messages = () => {
             </Card>
 
             {/* Messages */}
-            <Card className={`lg:col-span-3 flex flex-col ${mobileView === "list" ? "hidden lg:flex" : "h-[calc(100vh-180px)] lg:h-auto"}`}>
+            <Card className={`lg:col-span-3 flex flex-col ${mobileView === "list" ? "hidden lg:flex" : "h-[calc(100dvh-180px)] lg:h-auto"}`}>
               <CardHeader className="border-b flex flex-row items-center gap-2 py-3 px-4">
                 <button
                   className="lg:hidden shrink-0 p-1 -ml-1 text-muted-foreground hover:text-foreground transition-colors"
@@ -198,7 +198,7 @@ const Messages = () => {
                       className={`flex ${msg.senderId === user?.id ? "justify-end" : "justify-start"}`}
                     >
                       <div
-                        className={`max-w-[70%] rounded-lg p-3 ${
+                        className={`max-w-[85%] sm:max-w-[70%] rounded-lg p-3 ${
                           msg.senderId === user?.id
                             ? "bg-primary text-primary-foreground"
                             : "bg-muted"
@@ -220,7 +220,7 @@ const Messages = () => {
                       onChange={(e) => setNewMessage(e.target.value)}
                       onKeyDown={(e) => e.key === "Enter" && !sending && handleSend()}
                       placeholder="Type a message..."
-                      className="flex-1 px-3 py-2 border rounded-lg bg-background text-foreground"
+                      className="flex-1 px-3 py-2 border rounded-lg bg-background text-foreground text-base md:text-sm"
                       disabled={sending}
                     />
                     <button

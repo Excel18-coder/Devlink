@@ -9,21 +9,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/contexts/AuthContext";
 import { api, API_BASE } from "@/lib/api";
-import { Briefcase, FileText, DollarSign, Star, MessageSquare, User, Layers, Plus, Trash2, ExternalLink, Github, Globe, Pencil, BarChart3, AlertTriangle } from "lucide-react";
+import { Briefcase, FileText, DollarSign, Star, MessageSquare, User, Layers, Plus, Trash2, ExternalLink, Github, Globe, Pencil, BarChart3, AlertTriangle, ChevronDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import ResumeViewer from "@/components/ResumeViewer";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
-/** Returns a readable label for a portfolio link.
- *  Single link → "Portfolio"; multiple → hostname (e.g. "dribbble.com") */
-function portfolioLabel(url: string, total: number): string {
-  if (total === 1) return "Portfolio";
-  try {
-    return new URL(url).hostname.replace(/^www\./, "");
-  } catch {
-    return "Portfolio";
-  }
-}
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -558,13 +554,40 @@ const DeveloperDashboard = () => {
                           <Button variant="outline" size="sm">GitHub</Button>
                         </a>
                       )}
-                      {(profile.portfolioLinks ?? []).map((link) => (
-                        <a key={link} href={link} target="_blank" rel="noreferrer">
-                          <Button variant="outline" size="sm">
-                            {portfolioLabel(link, (profile.portfolioLinks ?? []).length)}
-                          </Button>
-                        </a>
-                      ))}
+                      {(profile.portfolioLinks ?? []).length > 0 && (
+                        (profile.portfolioLinks ?? []).length === 1 ? (
+                          <a href={profile.portfolioLinks![0]} target="_blank" rel="noreferrer">
+                            <Button variant="outline" size="sm">
+                              <ExternalLink className="h-4 w-4 mr-1.5" />
+                              Portfolio
+                            </Button>
+                          </a>
+                        ) : (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="outline" size="sm">
+                                <ExternalLink className="h-4 w-4 mr-1.5" />
+                                Portfolio
+                                <ChevronDown className="h-3.5 w-3.5 ml-1.5 opacity-70" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="start">
+                              {(profile.portfolioLinks ?? []).map((link) => {
+                                let label = link;
+                                try { label = new URL(link).hostname.replace(/^www\./, ""); } catch {}
+                                return (
+                                  <DropdownMenuItem key={link} asChild>
+                                    <a href={link} target="_blank" rel="noreferrer" className="flex items-center gap-2">
+                                      <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+                                      {label}
+                                    </a>
+                                  </DropdownMenuItem>
+                                );
+                              })}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )
+                      )}
                     </div>
                   </CardContent>
                 </Card>

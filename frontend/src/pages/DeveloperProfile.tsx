@@ -7,19 +7,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
-import { MapPin, Star, Github, ExternalLink, MessageSquare, ArrowLeft } from "lucide-react";
+import { MapPin, Star, Github, ExternalLink, MessageSquare, ArrowLeft, ChevronDown } from "lucide-react";
 import ResumeViewer from "@/components/ResumeViewer";
-
-/** Returns a readable label for a portfolio link.
- *  Single link → "Portfolio"; multiple → hostname (e.g. "dribbble.com") */
-function portfolioLabel(url: string, total: number): string {
-  if (total === 1) return "Portfolio";
-  try {
-    return new URL(url).hostname.replace(/^www\./, "");
-  } catch {
-    return "Portfolio";
-  }
-}
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface Developer {
   id: string;
@@ -164,14 +159,40 @@ const DeveloperProfile = () => {
                         </Button>
                       </a>
                     )}
-                    {developer.portfolioLinks?.map((link) => (
-                      <a key={link} href={link} target="_blank" rel="noopener noreferrer">
-                        <Button variant="outline" size="sm">
-                          <ExternalLink className="h-4 w-4 mr-2" />
-                          {portfolioLabel(link, developer.portfolioLinks!.length)}
-                        </Button>
-                      </a>
-                    ))}
+                    {developer.portfolioLinks && developer.portfolioLinks.length > 0 && (
+                      developer.portfolioLinks.length === 1 ? (
+                        <a href={developer.portfolioLinks[0]} target="_blank" rel="noopener noreferrer">
+                          <Button variant="outline" size="sm">
+                            <ExternalLink className="h-4 w-4 mr-2" />
+                            Portfolio
+                          </Button>
+                        </a>
+                      ) : (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="outline" size="sm">
+                              <ExternalLink className="h-4 w-4 mr-2" />
+                              Portfolio
+                              <ChevronDown className="h-3.5 w-3.5 ml-1.5 opacity-70" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="start">
+                            {developer.portfolioLinks.map((link) => {
+                              let label = link;
+                              try { label = new URL(link).hostname.replace(/^www\./, ""); } catch {}
+                              return (
+                                <DropdownMenuItem key={link} asChild>
+                                  <a href={link} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
+                                    <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+                                    {label}
+                                  </a>
+                                </DropdownMenuItem>
+                              );
+                            })}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )
+                    )}
                     {developer.resumeUrl && (
                       <ResumeViewer url={developer.resumeUrl} />
                     )}

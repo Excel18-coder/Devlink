@@ -33,4 +33,11 @@ const jobSchema = new Schema<IJob>(
   { timestamps: true }
 );
 
+// Indexes for common listing and filter patterns
+jobSchema.index({ status: 1, createdAt: -1 });
+jobSchema.index({ employerId: 1, createdAt: -1 });
+jobSchema.index({ status: 1, requiredSkills: 1 });
+jobSchema.index({ status: 1, experienceLevel: 1 });
+jobSchema.index({ status: 1, jobType: 1 });
+
 export const Job = mongoose.model<IJob>("Job", jobSchema);

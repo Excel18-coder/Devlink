@@ -1,16 +1,24 @@
-import { Router, Response } from "express";
+import { Router } from "express";
 import { Job } from "../models/Job.js";
 import { Employer } from "../models/Employer.js";
-import { AuthRequest, requireAuth } from "../middleware/auth.js";
+import { requireAuth, type AuthRequest } from "../middleware/auth.js";
 import { requireRole } from "../middleware/roles.js";
 import { validate } from "../middleware/validate.js";
 import { createJobSchema, updateJobSchema } from "../schemas/jobSchemas.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
+import { escapeRegex } from "../utils/escapeRegex.js";
+import { validateObjectIds } from "../middleware/validateObjectIds.js";
 
 const router = Router();
+router.use(validateObjectIds);
 
-router.get("/", async (req, res) => {
+const VALID_JOB_STATUSES = ["open", "paused", "closed"] as const;
+
+// ─── Public: list open jobs ──────────────────────────────────────────────────
+router.get("/", asyncHandler(async (req, res) => {
   const { skill, experience, jobType, budgetMin, budgetMax, search, page = "1", limit = "12" } = req.query;
-  const offset = (Number(page) - 1) * Number(limit);
+  const safeLimit = Math.min(Math.max(1, Number(limit)), 50);
+  const offset = (Math.max(1, Number(page)) - 1) * safeLimit;
 
   const filter: Record<string, unknown> = { status: "open" };
   if (skill) filter.requiredSkills = String(skill);
@@ -22,16 +30,22 @@ router.get("/", async (req, res) => {
     if (budgetMax) budgetFilter.$lte = Number(budgetMax);
     filter.budgetMin = budgetFilter;
   }
-  if (search) filter.$or = [{ title: new RegExp(String(search), "i") }, { description: new RegExp(String(search), "i") }];
+  if (search) {
+    const re = new RegExp(escapeRegex(String(search)), "i");
+    filter.$or = [{ title: re }, { description: re }];
+  }
 
-  const jobs = await Job.find(filter).sort({ createdAt: -1 }).skip(offset).limit(Number(limit));
+  const [jobs, total] = await Promise.all([
+    Job.find(filter).sort({ createdAt: -1 }).skip(offset).limit(safeLimit).lean(),
+    Job.countDocuments(filter),
+  ]);
 
   const employerIds = [...new Set(jobs.map((j) => j.employerId.toString()))];
-  const employers = await Employer.find({ userId: { $in: employerIds } }).select("userId companyName");
+  const employers = await Employer.find({ userId: { $in: employerIds } }).select("userId companyName").lean();
   const empMap = new Map(employers.map((e) => [e.userId.toString(), e.companyName]));
 
-  return res.json(
-    jobs.map((j) => ({
+  return res.json({
+    jobs: jobs.map((j) => ({
       id: j._id.toString(),
       employerId: j.employerId.toString(),
       companyName: empMap.get(j.employerId.toString()) ?? "",
@@ -45,20 +59,25 @@ router.get("/", async (req, res) => {
       jobType: j.jobType,
       location: j.location,
       status: j.status,
-      createdAt: j.createdAt
-    }))
-  );
-});
+      createdAt: j.createdAt,
+    })),
+    total,
+    page: Number(page),
+    pages: Math.ceil(total / safeLimit),
+  });
+}));
 
-router.get("/employer/:employerId", async (req, res) => {
-  const jobs = await Job.find({ employerId: req.params.employerId }).sort({ createdAt: -1 });
+// ─── Public: jobs by employer ────────────────────────────────────────────────
+router.get("/employer/:employerId", asyncHandler(async (req, res) => {
+  const jobs = await Job.find({ employerId: req.params.employerId }).sort({ createdAt: -1 }).lean();
   return res.json(jobs.map((j) => ({ id: j._id.toString(), title: j.title, status: j.status, createdAt: j.createdAt })));
-});
+}));
 
-router.get("/:id", async (req, res) => {
-  const job = await Job.findById(req.params.id);
+// ─── Public: single job ──────────────────────────────────────────────────────
+router.get("/:id", asyncHandler(async (req, res) => {
+  const job = await Job.findById(req.params.id).lean();
   if (!job) return res.status(404).json({ message: "Job not found" });
-  const emp = await Employer.findOne({ userId: job.employerId }).select("companyName");
+  const emp = await Employer.findOne({ userId: job.employerId }).select("companyName").lean();
   return res.json({
     id: job._id.toString(),
     employerId: job.employerId.toString(),
@@ -73,20 +92,34 @@ router.get("/:id", async (req, res) => {
     jobType: job.jobType,
     location: job.location,
     status: job.status,
-    createdAt: job.createdAt
+    createdAt: job.createdAt,
   });
-});
+}));
 
-router.post("/", requireAuth, requireRole("employer"), validate(createJobSchema), async (req: AuthRequest, res: Response) => {
+// ─── Create job ──────────────────────────────────────────────────────────────
+router.post("/", requireAuth, requireRole("employer"), validate(createJobSchema), asyncHandler<AuthRequest>(async (req, res) => {
   const { title, description, requiredSkills, experienceLevel, budgetMin, budgetMax, rateType, jobType, location } = req.body;
-  const job = await Job.create({ employerId: req.user!.id, title, description, requiredSkills: requiredSkills ?? [], experienceLevel, budgetMin, budgetMax, rateType, jobType, location });
+  const job = await Job.create({
+    employerId: req.user!.id,
+    title,
+    description,
+    requiredSkills: requiredSkills ?? [],
+    experienceLevel,
+    budgetMin,
+    budgetMax,
+    rateType,
+    jobType,
+    location,
+  });
   return res.status(201).json({ id: job._id.toString() });
-});
+}));
 
-router.patch("/:id", requireAuth, requireRole("employer"), validate(updateJobSchema), async (req: AuthRequest, res: Response) => {
+// ─── Update job ──────────────────────────────────────────────────────────────
+router.patch("/:id", requireAuth, requireRole("employer"), validate(updateJobSchema), asyncHandler<AuthRequest>(async (req, res) => {
   const job = await Job.findById(req.params.id);
   if (!job) return res.status(404).json({ message: "Job not found" });
   if (job.employerId.toString() !== req.user!.id) return res.status(403).json({ message: "Forbidden" });
+
   const { title, description, requiredSkills, experienceLevel, budgetMin, budgetMax, rateType, jobType, location } = req.body;
   const updates: Record<string, unknown> = {};
   if (title !== undefined) updates.title = title;
@@ -100,32 +133,41 @@ router.patch("/:id", requireAuth, requireRole("employer"), validate(updateJobSch
   if (location !== undefined) updates.location = location;
   await Job.findByIdAndUpdate(req.params.id, updates);
   return res.json({ message: "Job updated" });
-});
+}));
 
-router.post("/:id/close", requireAuth, requireRole("employer"), async (req: AuthRequest, res: Response) => {
+// ─── Close job ───────────────────────────────────────────────────────────────
+router.post("/:id/close", requireAuth, requireRole("employer"), asyncHandler<AuthRequest>(async (req, res) => {
   const job = await Job.findById(req.params.id);
   if (!job) return res.status(404).json({ message: "Job not found" });
   if (job.employerId.toString() !== req.user!.id) return res.status(403).json({ message: "Forbidden" });
   await Job.findByIdAndUpdate(req.params.id, { status: "closed" });
   return res.json({ message: "Job closed" });
-});
+}));
 
-router.patch("/:id/status", requireAuth, requireRole("employer", "admin"), async (req: AuthRequest, res: Response) => {
+// ─── Update job status ───────────────────────────────────────────────────────
+router.patch("/:id/status", requireAuth, requireRole("employer", "admin"), asyncHandler<AuthRequest>(async (req, res) => {
   const { status } = req.body;
-  if (!(["open", "paused", "closed"] as string[]).includes(status)) return res.status(400).json({ message: "Invalid status" });
+  if (!(VALID_JOB_STATUSES as readonly string[]).includes(status)) {
+    return res.status(400).json({ message: "Invalid status" });
+  }
   const job = await Job.findById(req.params.id);
   if (!job) return res.status(404).json({ message: "Job not found" });
-  if (req.user!.role === "employer" && job.employerId.toString() !== req.user!.id) return res.status(403).json({ message: "Forbidden" });
+  if (req.user!.role === "employer" && job.employerId.toString() !== req.user!.id) {
+    return res.status(403).json({ message: "Forbidden" });
+  }
   await Job.findByIdAndUpdate(req.params.id, { status });
   return res.json({ message: "Job status updated" });
-});
+}));
 
-router.delete("/:id", requireAuth, requireRole("employer", "admin"), async (req: AuthRequest, res: Response) => {
+// ─── Delete job ──────────────────────────────────────────────────────────────
+router.delete("/:id", requireAuth, requireRole("employer", "admin"), asyncHandler<AuthRequest>(async (req, res) => {
   const job = await Job.findById(req.params.id);
   if (!job) return res.status(404).json({ message: "Job not found" });
-  if (req.user!.role === "employer" && job.employerId.toString() !== req.user!.id) return res.status(403).json({ message: "Forbidden" });
+  if (req.user!.role === "employer" && job.employerId.toString() !== req.user!.id) {
+    return res.status(403).json({ message: "Forbidden" });
+  }
   await Job.findByIdAndDelete(req.params.id);
   return res.json({ message: "Job deleted" });
-});
+}));
 
 export default router;

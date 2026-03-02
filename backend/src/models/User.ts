@@ -21,4 +21,7 @@ const userSchema = new Schema<IUser>(
   { timestamps: true }
 );
 
+// Compound index: used by developer/employer listing queries that filter on both fields
+userSchema.index({ role: 1, status: 1 });
+
 export const User = mongoose.model<IUser>("User", userSchema);

@@ -21,4 +21,8 @@ const reviewSchema = new Schema<IReview>(
   { timestamps: true }
 );
 
+// Support 'reviews for a user' queries and the rating aggregation pipeline
+reviewSchema.index({ revieweeId: 1, createdAt: -1 });
+reviewSchema.index({ contractId: 1 });
+
 export const Review = mongoose.model<IReview>("Review", reviewSchema);

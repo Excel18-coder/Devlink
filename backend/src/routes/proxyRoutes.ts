@@ -20,8 +20,9 @@
  * - Result is cached at the CDN/client for 1 hour (private).
  */
 
-import { Router, Request, Response } from "express";
+import { Router } from "express";
 import { Readable } from "stream";
+import { asyncHandler } from "../utils/asyncHandler.js";
 
 const router = Router();
 
@@ -36,7 +37,7 @@ function isAllowedUrl(raw: string): boolean {
   }
 }
 
-router.get("/pdf", async (req: Request, res: Response) => {
+router.get("/pdf", asyncHandler(async (req, res) => {
   const { url } = req.query;
 
   if (!url || typeof url !== "string") {
@@ -51,6 +52,8 @@ router.get("/pdf", async (req: Request, res: Response) => {
 
   try {
     const upstream = await fetch(url, {
+      // Abort the upstream fetch after 15 s to avoid holding the connection open
+      signal: AbortSignal.timeout(15_000),
       headers: {
         // Some CDN edges vary responses on Accept; request PDF explicitly
         Accept: "application/pdf,*/*;q=0.9",
@@ -65,6 +68,14 @@ router.get("/pdf", async (req: Request, res: Response) => {
 
     if (!upstream.body) {
       res.status(502).json({ error: "No response body from upstream" });
+      return;
+    }
+
+    // Enforce a 20 MB cap so a malicious Cloudinary URL can't exhaust memory
+    const MAX_BYTES = 20 * 1024 * 1024;
+    const contentLength = upstream.headers.get("content-length");
+    if (contentLength && Number(contentLength) > MAX_BYTES) {
+      res.status(413).json({ error: "File too large to proxy" });
       return;
     }
 
@@ -90,6 +101,16 @@ router.get("/pdf", async (req: Request, res: Response) => {
     const nodeReadable = Readable.fromWeb(
       upstream.body as Parameters<typeof Readable.fromWeb>[0]
     );
+
+    // Enforce size cap at stream level — reject if upstream sends more than allowed
+    let bytesSent = 0;
+    nodeReadable.on("data", (chunk: Buffer) => {
+      bytesSent += chunk.length;
+      if (bytesSent > MAX_BYTES) {
+        nodeReadable.destroy(new Error("File too large"));
+      }
+    });
+
     nodeReadable.pipe(res);
 
     nodeReadable.on("error", () => {
@@ -100,11 +121,12 @@ router.get("/pdf", async (req: Request, res: Response) => {
       }
     });
   } catch (err) {
+    // eslint-disable-next-line no-console
     console.error("[proxy/pdf] fetch error:", err);
     if (!res.headersSent) {
       res.status(502).json({ error: "Failed to fetch from upstream" });
     }
   }
-});
+}));
 
 export default router;

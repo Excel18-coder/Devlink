@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import Navbar from "@/components/Navbar";
@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useSEO } from "@/hooks/useSEO";
+import { ping } from "@/lib/api";
 
 const Login = () => {
   useSEO({
@@ -19,23 +20,76 @@ const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [warmingUp, setWarmingUp] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  // Ping the server as soon as the login page mounts so a cold-started
+  // backend wakes up while the user is filling in their credentials.
+  useEffect(() => {
+    ping();
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setWarmingUp(false);
+
+    const attempt = async (isRetry = false): Promise<void> => {
+      try {
+        await login(email, password);
+        toast({ title: "Welcome back!" });
+        navigate("/dashboard");
+      } catch (err) {
+        const msg = (err as Error).message;
+        if (msg === "__TIMEOUT__" && !isRetry) {
+          // Server was probably cold — show a warming-up message and retry
+          // automatically with a longer 60 s window.
+          setWarmingUp(true);
+          try {
+            await login(email, password, 60_000);
+            toast({ title: "Welcome back!" });
+            navigate("/dashboard");
+          } catch (retryErr) {
+            const retryMsg = (retryErr as Error).message;
+            toast({
+              title: "Login failed",
+              description:
+                retryMsg === "__TIMEOUT__"
+                  ? "The server is still waking up. Please wait a moment and try again."
+                  : retryMsg,
+              variant: "destructive",
+            });
+          } finally {
+            setWarmingUp(false);
+          }
+        } else {
+          toast({
+            title: "Login failed",
+            description:
+              msg === "__TIMEOUT__"
+                ? "The server is taking too long to respond. Please try again."
+                : msg,
+            variant: "destructive",
+          });
+        }
+      }
+    };
+
     try {
-      await login(email, password);
-      toast({ title: "Welcome back!" });
-      navigate("/dashboard");
-    } catch (err) {
-      toast({ title: "Login failed", description: (err as Error).message, variant: "destructive" });
+      await attempt();
     } finally {
       setLoading(false);
+      setWarmingUp(false);
     }
   };
+
+  const buttonLabel = warmingUp
+    ? "Server waking up, retrying…"
+    : loading
+    ? "Signing in…"
+    : "Sign In";
 
   return (
     <div className="min-h-screen bg-background">
@@ -65,8 +119,8 @@ const Login = () => {
                   required
                 />
               </div>
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Signing in..." : "Sign In"}
+              <Button type="submit" className="w-full" disabled={loading || warmingUp}>
+                {buttonLabel}
               </Button>
             </form>
             <p className="text-sm text-muted-foreground text-center mt-4">

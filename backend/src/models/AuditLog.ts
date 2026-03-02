@@ -21,4 +21,9 @@ const auditLogSchema = new Schema<IAuditLog>(
   { timestamps: true }
 );
 
+// Admin audit queries: by entity, by actor, and by time
+auditLogSchema.index({ entity: 1, entityId: 1, createdAt: -1 });
+auditLogSchema.index({ actorId: 1, createdAt: -1 });
+auditLogSchema.index({ createdAt: -1 });
+
 export const AuditLog = mongoose.model<IAuditLog>("AuditLog", auditLogSchema);

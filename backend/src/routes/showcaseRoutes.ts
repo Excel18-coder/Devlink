@@ -1,49 +1,47 @@
-import { Router, Response } from "express";
+import { Router } from "express";
 import { Showcase } from "../models/Showcase.js";
 import { Developer } from "../models/Developer.js";
 import { User } from "../models/User.js";
-import { AuthRequest, requireAuth } from "../middleware/auth.js";
+import { requireAuth, type AuthRequest } from "../middleware/auth.js";
 import { requireRole } from "../middleware/roles.js";
 import { validate } from "../middleware/validate.js";
 import { upload } from "../middleware/upload.js";
 import { uploadToCloudinary } from "../utils/cloudinaryUpload.js";
 import { createShowcaseSchema, updateShowcaseSchema } from "../schemas/showcaseSchemas.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
+import { escapeRegex } from "../utils/escapeRegex.js";
+import { validateObjectIds } from "../middleware/validateObjectIds.js";
 
 const router = Router();
+router.use(validateObjectIds);
 
-// ─── PUBLIC: list all active showcases ────────────────────────────────────────
-router.get("/", async (req, res) => {
+// ─── Public: list active showcases ────────────────────────────────────────────
+router.get("/", asyncHandler(async (req, res) => {
   const { category, lookingFor, tech, search, page = "1", limit = "12" } = req.query;
-  const offset = (Number(page) - 1) * Number(limit);
+  const safeLimit = Math.min(Math.max(1, Number(limit)), 50);
+  const offset = (Math.max(1, Number(page)) - 1) * safeLimit;
 
   const filter: Record<string, unknown> = { status: "active" };
   if (category) filter.category = String(category);
   if (lookingFor) filter.lookingFor = { $in: [String(lookingFor), "both"] };
-  if (tech) filter.techStack = new RegExp(String(tech), "i");
+  if (tech) filter.techStack = new RegExp(escapeRegex(String(tech)), "i");
   if (search) {
     filter.$or = [
-      { title: new RegExp(String(search), "i") },
-      { tagline: new RegExp(String(search), "i") },
-      { techStack: new RegExp(String(search), "i") }
+      { title: new RegExp(escapeRegex(String(search)), "i") },
+      { tagline: new RegExp(escapeRegex(String(search)), "i") },
+      { techStack: new RegExp(escapeRegex(String(search)), "i") },
     ];
-    delete filter.status;
-    filter.status = "active";
   }
 
   const [showcases, total] = await Promise.all([
-    Showcase.find(filter)
-      .sort({ createdAt: -1 })
-      .skip(offset)
-      .limit(Number(limit))
-      .lean(),
-    Showcase.countDocuments(filter)
+    Showcase.find(filter).sort({ createdAt: -1 }).skip(offset).limit(safeLimit).lean(),
+    Showcase.countDocuments(filter),
   ]);
 
-  // Enrich with developer info
   const devIds = showcases.map((s) => s.developerId.toString());
   const [developers, users] = await Promise.all([
     Developer.find({ userId: { $in: devIds } }).select("userId avatarUrl ratingAvg").lean(),
-    User.find({ _id: { $in: devIds } }).select("fullName").lean()
+    User.find({ _id: { $in: devIds } }).select("fullName").lean(),
   ]);
   const devMap = new Map(developers.map((d) => [d.userId.toString(), d]));
   const userMap = new Map(users.map((u) => [u._id.toString(), u]));
@@ -67,41 +65,43 @@ router.get("/", async (req, res) => {
       category: s.category,
       lookingFor: s.lookingFor,
       likes: s.likedBy.length,
-      createdAt: s.createdAt
+      createdAt: s.createdAt,
     };
   });
 
-  return res.json({ showcases: result, total, page: Number(page), pages: Math.ceil(total / Number(limit)) });
-});
+  return res.json({ showcases: result, total, page: Number(page), pages: Math.ceil(total / safeLimit) });
+}));
 
-// ─── AUTH: developer's own showcases ──────────────────────────────────────────
-router.get("/me", requireAuth, requireRole("developer"), async (req: AuthRequest, res: Response) => {
+// ─── Auth: developer's own showcases ──────────────────────────────────────────
+router.get("/me", requireAuth, requireRole("developer"), asyncHandler<AuthRequest>(async (req, res) => {
   const showcases = await Showcase.find({ developerId: req.user!.id }).sort({ createdAt: -1 }).lean();
-  return res.json(showcases.map((s) => ({
-    id: s._id.toString(),
-    title: s.title,
-    tagline: s.tagline,
-    description: s.description,
-    techStack: s.techStack,
-    projectUrl: s.projectUrl,
-    repoUrl: s.repoUrl,
-    imageUrl: s.imageUrl,
-    category: s.category,
-    lookingFor: s.lookingFor,
-    status: s.status,
-    likes: s.likedBy.length,
-    createdAt: s.createdAt
-  })));
-});
+  return res.json(
+    showcases.map((s) => ({
+      id: s._id.toString(),
+      title: s.title,
+      tagline: s.tagline,
+      description: s.description,
+      techStack: s.techStack,
+      projectUrl: s.projectUrl,
+      repoUrl: s.repoUrl,
+      imageUrl: s.imageUrl,
+      category: s.category,
+      lookingFor: s.lookingFor,
+      status: s.status,
+      likes: s.likedBy.length,
+      createdAt: s.createdAt,
+    }))
+  );
+}));
 
-// ─── PUBLIC: single showcase ───────────────────────────────────────────────────
-router.get("/:id", async (req, res) => {
+// ─── Public: single showcase ───────────────────────────────────────────────────
+router.get("/:id", asyncHandler(async (req, res) => {
   const showcase = await Showcase.findById(req.params.id).lean();
   if (!showcase) return res.status(404).json({ message: "Showcase not found" });
 
   const [dev, user] = await Promise.all([
     Developer.findOne({ userId: showcase.developerId }).select("avatarUrl ratingAvg skills yearsExperience availability").lean(),
-    User.findById(showcase.developerId).select("fullName").lean()
+    User.findById(showcase.developerId).select("fullName").lean(),
   ]);
 
   return res.json({
@@ -125,12 +125,12 @@ router.get("/:id", async (req, res) => {
     status: showcase.status,
     likes: showcase.likedBy.length,
     likedBy: showcase.likedBy.map(String),
-    createdAt: showcase.createdAt
+    createdAt: showcase.createdAt,
   });
-});
+}));
 
-// ─── CREATE ────────────────────────────────────────────────────────────────────
-router.post("/", requireAuth, requireRole("developer"), validate(createShowcaseSchema), async (req: AuthRequest, res: Response) => {
+// ─── Create showcase ───────────────────────────────────────────────────────────
+router.post("/", requireAuth, requireRole("developer"), validate(createShowcaseSchema), asyncHandler<AuthRequest>(async (req, res) => {
   const { title, tagline, description, techStack, projectUrl, repoUrl, category, lookingFor, status } = req.body;
   const showcase = await Showcase.create({
     developerId: req.user!.id,
@@ -142,13 +142,13 @@ router.post("/", requireAuth, requireRole("developer"), validate(createShowcaseS
     repoUrl: repoUrl || undefined,
     category,
     lookingFor,
-    status
+    status,
   });
   return res.status(201).json({ id: showcase._id.toString(), message: "Showcase created" });
-});
+}));
 
-// ─── UPDATE ────────────────────────────────────────────────────────────────────
-router.patch("/:id", requireAuth, requireRole("developer"), validate(updateShowcaseSchema), async (req: AuthRequest, res: Response) => {
+// ─── Update showcase ───────────────────────────────────────────────────────────
+router.patch("/:id", requireAuth, requireRole("developer"), validate(updateShowcaseSchema), asyncHandler<AuthRequest>(async (req, res) => {
   const showcase = await Showcase.findById(req.params.id);
   if (!showcase) return res.status(404).json({ message: "Showcase not found" });
   if (showcase.developerId.toString() !== req.user!.id) return res.status(403).json({ message: "Forbidden" });
@@ -159,19 +159,19 @@ router.patch("/:id", requireAuth, requireRole("developer"), validate(updateShowc
   });
   await showcase.save();
   return res.json({ message: "Showcase updated" });
-});
+}));
 
-// ─── DELETE ────────────────────────────────────────────────────────────────────
-router.delete("/:id", requireAuth, requireRole("developer"), async (req: AuthRequest, res: Response) => {
+// ─── Delete showcase ───────────────────────────────────────────────────────────
+router.delete("/:id", requireAuth, requireRole("developer"), asyncHandler<AuthRequest>(async (req, res) => {
   const showcase = await Showcase.findById(req.params.id);
   if (!showcase) return res.status(404).json({ message: "Showcase not found" });
   if (showcase.developerId.toString() !== req.user!.id) return res.status(403).json({ message: "Forbidden" });
   await showcase.deleteOne();
   return res.json({ message: "Showcase deleted" });
-});
+}));
 
-// ─── LIKE / UNLIKE ────────────────────────────────────────────────────────────
-router.post("/:id/like", requireAuth, async (req: AuthRequest, res: Response) => {
+// ─── Like / unlike ────────────────────────────────────────────────────────────
+router.post("/:id/like", requireAuth, asyncHandler<AuthRequest>(async (req, res) => {
   const showcase = await Showcase.findById(req.params.id);
   if (!showcase) return res.status(404).json({ message: "Showcase not found" });
 
@@ -184,10 +184,10 @@ router.post("/:id/like", requireAuth, async (req: AuthRequest, res: Response) =>
   }
   await showcase.save();
   return res.json({ likes: showcase.likedBy.length, liked: !alreadyLiked });
-});
+}));
 
-// ─── UPLOAD IMAGE ─────────────────────────────────────────────────────────────
-router.post("/:id/image", requireAuth, requireRole("developer"), upload.single("image"), async (req: AuthRequest, res: Response) => {
+// ─── Upload showcase image ────────────────────────────────────────────────────
+router.post("/:id/image", requireAuth, requireRole("developer"), upload.single("image"), asyncHandler<AuthRequest>(async (req, res) => {
   const showcase = await Showcase.findById(req.params.id);
   if (!showcase) return res.status(404).json({ message: "Showcase not found" });
   if (showcase.developerId.toString() !== req.user!.id) return res.status(403).json({ message: "Forbidden" });
@@ -197,6 +197,6 @@ router.post("/:id/image", requireAuth, requireRole("developer"), upload.single("
   showcase.imageUrl = result.secureUrl;
   await showcase.save();
   return res.json({ imageUrl: result.secureUrl });
-});
+}));
 
 export default router;

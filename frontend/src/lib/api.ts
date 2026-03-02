@@ -5,9 +5,20 @@ interface RequestOptions {
   method?: string;
   body?: unknown;
   headers?: Record<string, string>;
-  /** Override the default 15 s abort timeout (ms). */
+  /** Override the default 30 s abort timeout (ms). */
   timeout?: number;
+  /** Pass keepalive:true so the request survives page unload (e.g. logout). */
+  keepalive?: boolean;
 }
+
+/**
+ * Fire-and-forget ping to /api/health.
+ * Call this on page mount to wake up a cold-started server before the user
+ * submits a form, so the real request doesn't hit the timeout.
+ */
+export const ping = (): void => {
+  fetch(`${API_BASE}/health`, { signal: AbortSignal.timeout(60_000) }).catch(() => {});
+};
 
 const getToken = () => localStorage.getItem("accessToken");
 
@@ -15,7 +26,7 @@ const getToken = () => localStorage.getItem("accessToken");
 const _inflight = new Map<string, Promise<unknown>>();
 
 export const api = async <T>(endpoint: string, options: RequestOptions = {}): Promise<T> => {
-  const { method = "GET", body, headers = {}, timeout = 15_000 } = options;
+  const { method = "GET", body, headers = {}, timeout = 30_000, keepalive } = options;
   const token = getToken();
 
   const controller = new AbortController();
@@ -25,6 +36,7 @@ export const api = async <T>(endpoint: string, options: RequestOptions = {}): Pr
     fetch(`${API_BASE}${endpoint}`, {
       method,
       signal: controller.signal,
+      keepalive: keepalive ?? false,
       headers: {
         "Content-Type": "application/json",
         ...(tok ? { Authorization: `Bearer ${tok}` } : {}),
@@ -56,6 +68,10 @@ export const api = async <T>(endpoint: string, options: RequestOptions = {}): Pr
           if (refreshRes.ok) {
             const data = await refreshRes.json();
             localStorage.setItem("accessToken", data.accessToken);
+            // Server now rotates the refresh token — persist the new one
+            if (data.refreshToken) {
+              localStorage.setItem("refreshToken", data.refreshToken);
+            }
             const retryRes = await doFetch(data.accessToken);
             if (!retryRes.ok) {
               const err = await retryRes.json();
@@ -77,7 +93,7 @@ export const api = async <T>(endpoint: string, options: RequestOptions = {}): Pr
       return res.json();
     } catch (err) {
       if ((err as Error).name === "AbortError") {
-        throw new Error("The server is taking too long to respond. Please try again.");
+        throw new Error("__TIMEOUT__");
       }
       if (err instanceof TypeError && err.message === "Failed to fetch") {
         throw new Error("Unable to reach the server. Check your connection and try again.");

@@ -1,17 +1,20 @@
-import { Router, Response } from "express";
+import { Router } from "express";
 import { Contract } from "../models/Contract.js";
-import { AuthRequest, requireAuth } from "../middleware/auth.js";
+import { requireAuth, type AuthRequest } from "../middleware/auth.js";
 import { requireRole } from "../middleware/roles.js";
 import { validate } from "../middleware/validate.js";
 import { createContractSchema } from "../schemas/contractSchemas.js";
 import { createAuditLog } from "../services/auditService.js";
 import { uploadSubmission } from "../middleware/upload.js";
 import { uploadToCloudinary } from "../utils/cloudinaryUpload.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
+import { validateObjectIds } from "../middleware/validateObjectIds.js";
 
 const router = Router();
+router.use(validateObjectIds);
 
 // ─── Create contract ────────────────────────────────────────────────────────
-router.post("/", requireAuth, requireRole("employer"), validate(createContractSchema), async (req: AuthRequest, res: Response) => {
+router.post("/", requireAuth, requireRole("employer"), validate(createContractSchema), asyncHandler<AuthRequest>(async (req, res) => {
   const { jobId, developerId, milestones } = req.body;
 
   const parsedMilestones = (milestones ?? []).map(
@@ -45,10 +48,10 @@ router.post("/", requireAuth, requireRole("employer"), validate(createContractSc
   });
 
   return res.status(201).json({ id: contract._id.toString() });
-});
+}));
 
 // ─── Developer: save payment details (bank/mobile money info for off-site payments) ──
-router.post("/:id/payment-details", requireAuth, requireRole("developer"), async (req: AuthRequest, res: Response) => {
+router.post("/:id/payment-details", requireAuth, requireRole("developer"), asyncHandler<AuthRequest>(async (req, res) => {
   const contract = await Contract.findById(req.params.id);
   if (!contract) return res.status(404).json({ message: "Contract not found" });
   if (contract.developerId.toString() !== req.user!.id) return res.status(403).json({ message: "Forbidden" });
@@ -78,10 +81,10 @@ router.post("/:id/payment-details", requireAuth, requireRole("developer"), async
   });
 
   return res.json({ message: "Payment details saved" });
-});
+}));
 
 // ─── Developer: submit preview/demo link for employer review ───────────────
-router.post("/:id/milestones/:msId/submit", requireAuth, requireRole("developer"), async (req: AuthRequest, res: Response) => {
+router.post("/:id/milestones/:msId/submit", requireAuth, requireRole("developer"), asyncHandler<AuthRequest>(async (req, res) => {
   const contract = await Contract.findById(req.params.id);
   if (!contract) return res.status(404).json({ message: "Contract not found" });
   if (contract.developerId.toString() !== req.user!.id) return res.status(403).json({ message: "Forbidden" });
@@ -109,10 +112,10 @@ router.post("/:id/milestones/:msId/submit", requireAuth, requireRole("developer"
   });
 
   return res.json({ message: "Work submitted for employer review" });
-});
+}));
 
 // ─── Employer: approve & release milestone (confirms payment was sent off-site) ──
-router.post("/:id/milestones/:msId/release", requireAuth, requireRole("employer"), async (req: AuthRequest, res: Response) => {
+router.post("/:id/milestones/:msId/release", requireAuth, requireRole("employer"), asyncHandler<AuthRequest>(async (req, res) => {
   const contract = await Contract.findById(req.params.id);
   if (!contract) return res.status(404).json({ message: "Contract not found" });
   if (contract.employerId.toString() !== req.user!.id) return res.status(403).json({ message: "Forbidden" });
@@ -133,10 +136,10 @@ router.post("/:id/milestones/:msId/release", requireAuth, requireRole("employer"
   });
 
   return res.json({ message: "Milestone released. Developer will now submit final deliverables." });
-});
+}));
 
 // ─── Developer: deliver final ZIP + official domain after payment ────────────
-router.post("/:id/milestones/:msId/deliver", requireAuth, requireRole("developer"), uploadSubmission.single("deliveryFile"), async (req: AuthRequest, res: Response) => {
+router.post("/:id/milestones/:msId/deliver", requireAuth, requireRole("developer"), uploadSubmission.single("deliveryFile"), asyncHandler<AuthRequest>(async (req, res) => {
   const contract = await Contract.findById(req.params.id);
   if (!contract) return res.status(404).json({ message: "Contract not found" });
   if (contract.developerId.toString() !== req.user!.id) return res.status(403).json({ message: "Forbidden" });
@@ -178,10 +181,10 @@ router.post("/:id/milestones/:msId/deliver", requireAuth, requireRole("developer
   });
 
   return res.json({ message: "Final deliverables submitted." });
-});
+}));
 
 // ─── Employer: add a new milestone to an active contract ────────────────────
-router.post("/:id/milestones", requireAuth, requireRole("employer"), async (req: AuthRequest, res: Response) => {
+router.post("/:id/milestones", requireAuth, requireRole("employer"), asyncHandler<AuthRequest>(async (req, res) => {
   const contract = await Contract.findById(req.params.id);
   if (!contract) return res.status(404).json({ message: "Contract not found" });
   if (contract.employerId.toString() !== req.user!.id) return res.status(403).json({ message: "Forbidden" });
@@ -210,10 +213,10 @@ router.post("/:id/milestones", requireAuth, requireRole("employer"), async (req:
   });
 
   return res.status(201).json({ message: "Milestone added", totalAmount: contract.totalAmount });
-});
+}));
 
 // ─── Employer: mark contract as complete (all milestones delivered) ───────────
-router.post("/:id/complete", requireAuth, requireRole("employer"), async (req: AuthRequest, res: Response) => {
+router.post("/:id/complete", requireAuth, requireRole("employer"), asyncHandler<AuthRequest>(async (req, res) => {
   const contract = await Contract.findById(req.params.id);
   if (!contract) return res.status(404).json({ message: "Contract not found" });
   if (contract.employerId.toString() !== req.user!.id) return res.status(403).json({ message: "Forbidden" });
@@ -232,10 +235,10 @@ router.post("/:id/complete", requireAuth, requireRole("employer"), async (req: A
   });
 
   return res.json({ message: "Contract marked as complete" });
-});
+}));
 
 // ─── Employer: terminate (cancel) an active contract ────────────────────────
-router.post("/:id/terminate", requireAuth, requireRole("employer"), async (req: AuthRequest, res: Response) => {
+router.post("/:id/terminate", requireAuth, requireRole("employer"), asyncHandler<AuthRequest>(async (req, res) => {
   const contract = await Contract.findById(req.params.id);
   if (!contract) return res.status(404).json({ message: "Contract not found" });
   if (contract.employerId.toString() !== req.user!.id) return res.status(403).json({ message: "Forbidden" });
@@ -255,10 +258,10 @@ router.post("/:id/terminate", requireAuth, requireRole("employer"), async (req: 
   });
 
   return res.json({ message: "Contract terminated" });
-});
+}));
 
 // ─── Employer: edit a pending milestone ──────────────────────────────────────
-router.patch("/:id/milestones/:msId", requireAuth, requireRole("employer"), async (req: AuthRequest, res: Response) => {
+router.patch("/:id/milestones/:msId", requireAuth, requireRole("employer"), asyncHandler<AuthRequest>(async (req, res) => {
   const contract = await Contract.findById(req.params.id);
   if (!contract) return res.status(404).json({ message: "Contract not found" });
   if (contract.employerId.toString() !== req.user!.id) return res.status(403).json({ message: "Forbidden" });
@@ -290,10 +293,10 @@ router.patch("/:id/milestones/:msId", requireAuth, requireRole("employer"), asyn
   });
 
   return res.json({ message: "Milestone updated", totalAmount: contract.totalAmount });
-});
+}));
 
 // ─── Employer: delete a pending milestone ────────────────────────────────────
-router.delete("/:id/milestones/:msId", requireAuth, requireRole("employer"), async (req: AuthRequest, res: Response) => {
+router.delete("/:id/milestones/:msId", requireAuth, requireRole("employer"), asyncHandler<AuthRequest>(async (req, res) => {
   const contract = await Contract.findById(req.params.id);
   if (!contract) return res.status(404).json({ message: "Contract not found" });
   if (contract.employerId.toString() !== req.user!.id) return res.status(403).json({ message: "Forbidden" });
@@ -315,10 +318,10 @@ router.delete("/:id/milestones/:msId", requireAuth, requireRole("employer"), asy
   });
 
   return res.json({ message: "Milestone deleted", totalAmount: contract.totalAmount });
-});
+}));
 
 // ─── Dispute contract ────────────────────────────────────────────────────────
-router.post("/:id/dispute", requireAuth, async (req: AuthRequest, res: Response) => {
+router.post("/:id/dispute", requireAuth, asyncHandler<AuthRequest>(async (req, res) => {
   const contract = await Contract.findById(req.params.id);
   if (!contract) return res.status(404).json({ message: "Contract not found" });
   if (
@@ -340,16 +343,17 @@ router.post("/:id/dispute", requireAuth, async (req: AuthRequest, res: Response)
   });
 
   return res.json({ message: "Dispute raised. Admin will review." });
-});
+}));
 
 // ─── List contracts ──────────────────────────────────────────────────────────
-router.get("/", requireAuth, async (req: AuthRequest, res: Response) => {
+router.get("/", requireAuth, asyncHandler<AuthRequest>(async (req, res) => {
   const { role, id } = req.user!;
   let filter: Record<string, unknown> = {};
   if (role === "developer") filter = { developerId: id };
   else if (role === "employer") filter = { employerId: id };
 
-  const contracts = await Contract.find(filter).sort({ createdAt: -1 }).limit(role === "admin" ? 100 : 1000);
+  // Admins see all contracts (higher limit); role-scoped users rarely exceed 100
+  const contracts = await Contract.find(filter).sort({ createdAt: -1 }).limit(role === "admin" ? 1000 : 100).lean();
   return res.json(
     contracts.map((c) => ({
       id: c._id.toString(),
@@ -362,10 +366,10 @@ router.get("/", requireAuth, async (req: AuthRequest, res: Response) => {
       createdAt: c.createdAt
     }))
   );
-});
+}));
 
 // ─── Get single contract with milestone submission details ───────────────────
-router.get("/:id", requireAuth, async (req: AuthRequest, res: Response) => {
+router.get("/:id", requireAuth, asyncHandler<AuthRequest>(async (req, res) => {
   const contract = await Contract.findById(req.params.id);
   if (!contract) return res.status(404).json({ message: "Contract not found" });
   if (
@@ -397,6 +401,6 @@ router.get("/:id", requireAuth, async (req: AuthRequest, res: Response) => {
       finalFileUrl: m.finalFileUrl ?? null
     }))
   });
-});
+}));
 
 export default router;

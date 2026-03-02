@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,13 @@ interface Job {
   status: string;
 }
 
+interface JobsResponse {
+  jobs: Job[];
+  total: number;
+  page: number;
+  pages: number;
+}
+
 const typeColor: Record<string, string> = {
   "remote": "bg-accent/10 text-accent",
   "contract": "bg-primary/10 text-primary",
@@ -34,29 +42,25 @@ const Jobs = () => {
     description: "Find the latest remote, contract, and full-time developer jobs on Devlink. Filter by skills, location, and salary. New roles posted daily.",
     canonical: "https://devlink.co.ke/jobs",
   });
-  const [jobs, setJobs] = useState<Job[]>([]);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [activeSearch, setActiveSearch] = useState("");
+  const [page, setPage] = useState(1);
 
-  useEffect(() => {
-    fetchJobs();
-  }, []);
+  const { data, isLoading: loading, isFetching } = useQuery<JobsResponse>({
+    queryKey: ["jobs", activeSearch, page],
+    queryFn: () => {
+      const params = new URLSearchParams({ page: String(page), limit: "12" });
+      if (activeSearch) params.set("search", activeSearch);
+      return api<JobsResponse>(`/jobs?${params}`);
+    },
+    placeholderData: (prev) => prev, // keep stale data visible while fetching next page
+  });
 
-  const fetchJobs = async (searchTerm?: string) => {
-    try {
-      const params = searchTerm ? `?search=${encodeURIComponent(searchTerm)}` : "";
-      const data = await api<Job[]>(`/jobs${params}`);
-      setJobs(data);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const jobs = data?.jobs ?? [];
 
   const handleSearch = () => {
-    setLoading(true);
-    fetchJobs(search);
+    setPage(1);
+    setActiveSearch(search);
   };
 
   const getTimeAgo = (date: string) => {
@@ -66,6 +70,8 @@ const Jobs = () => {
     if (days === 1) return "1d ago";
     return `${days}d ago`;
   };
+
+  const totalPages = data?.pages ?? 1;
 
   return (
     <div className="min-h-screen bg-background">
@@ -93,7 +99,8 @@ const Jobs = () => {
             <Button variant="outline" size="default" onClick={handleSearch}>Search</Button>
           </div>
 
-          {/* Job List */}
+          {/* Job List — slight opacity while refetching a new page */}
+          <div className={isFetching && !loading ? "opacity-60 transition-opacity duration-200" : undefined}>
           {loading ? (
             <div className="flex justify-center py-12">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -138,6 +145,32 @@ const Jobs = () => {
                   </div>
                 </Link>
               ))}
+            </div>
+          )}
+          </div>{/* end isFetching wrapper */}
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex justify-center items-center gap-3 mt-8">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1 || isFetching}
+              >
+                Previous
+              </Button>
+              <span className="text-sm text-muted-foreground">
+                Page {page} of {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages || isFetching}
+              >
+                Next
+              </Button>
             </div>
           )}
         </div>

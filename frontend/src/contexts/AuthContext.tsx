@@ -12,7 +12,7 @@ interface User {
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, timeout?: number) => Promise<void>;
   register: (email: string, password: string, role: string, fullName?: string) => Promise<void>;
   logout: () => void;
 }
@@ -81,7 +81,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       .finally(() => setLoading(false));
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string, timeout?: number) => {
     const data = await api<{
       accessToken: string;
       refreshToken: string;
@@ -93,6 +93,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }>("/auth/login", {
       method: "POST",
       body: { email, password },
+      ...(timeout ? { timeout } : {}),
     });
     localStorage.setItem("accessToken", data.accessToken);
     localStorage.setItem("refreshToken", data.refreshToken);
@@ -133,7 +134,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = () => {
     const refreshToken = localStorage.getItem("refreshToken");
-    api("/auth/logout", { method: "POST", body: { refreshToken } }).catch(() => {});
+    // keepalive ensures the request survives page unload (e.g. navigating away)
+    api("/auth/logout", { method: "POST", body: { refreshToken }, keepalive: true }).catch(() => {});
     localStorage.removeItem("accessToken");
     localStorage.removeItem("refreshToken");
     setAndCache(null);

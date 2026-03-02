@@ -1,4 +1,4 @@
-import { Router, Response } from "express";
+import { Router } from "express";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { User } from "../models/User.js";
@@ -9,17 +9,29 @@ import { EmailVerification } from "../models/EmailVerification.js";
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from "../utils/tokens.js";
 import { validate } from "../middleware/validate.js";
 import { sendOtpSchema, verifyOtpSchema, registerSchema, loginSchema } from "../schemas/authSchemas.js";
-import { AuthRequest, requireAuth } from "../middleware/auth.js";
+import { requireAuth, type AuthRequest } from "../middleware/auth.js";
 import { sendVerificationEmail } from "../services/emailService.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
+import { createAuditLog } from "../services/auditService.js";
 
 const router = Router();
 
+/** Lifetime for stored refresh tokens — must stay in sync with JWT_REFRESH_TTL. */
+const REFRESH_TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+// Bcrypt cost we want all new hashes to use. If an existing hash was created
+// with a lower factor we re-hash it transparently on next successful login.
+const BCRYPT_ROUNDS = 12;
+
 // ─── Step 1: Send OTP ────────────────────────────────────────────────────────
-router.post("/send-otp", validate(sendOtpSchema), async (req, res) => {
+router.post("/send-otp", validate(sendOtpSchema), asyncHandler(async (req, res) => {
   const email = (req.body.email as string).toLowerCase();
 
-  const existing = await User.findOne({ email });
-  if (existing) return res.status(400).json({ message: "Email already in use" });
+  const existing = await User.findOne({ email }).select("_id").lean();
+  // Constant-time response — don't reveal whether the email is registered
+  if (existing) {
+    return res.json({ message: "Verification code sent to your email" });
+  }
 
   // Delete any previous OTPs for this email
   await EmailVerification.deleteMany({ email });
@@ -32,16 +44,17 @@ router.post("/send-otp", validate(sendOtpSchema), async (req, res) => {
   try {
     await sendVerificationEmail(email, otp);
   } catch (err) {
+    // eslint-disable-next-line no-console
     console.error("Failed to send verification email:", err);
     await EmailVerification.deleteOne({ email });
     return res.status(500).json({ message: "We couldn't send the verification code. Please try again in a moment." });
   }
 
   return res.json({ message: "Verification code sent to your email" });
-});
+}));
 
 // ─── Step 2: Verify OTP ───────────────────────────────────────────────────────
-router.post("/verify-otp", validate(verifyOtpSchema), async (req, res) => {
+router.post("/verify-otp", validate(verifyOtpSchema), asyncHandler(async (req, res) => {
   const email = (req.body.email as string).toLowerCase();
   const { otp } = req.body as { otp: string };
 
@@ -57,10 +70,10 @@ router.post("/verify-otp", validate(verifyOtpSchema), async (req, res) => {
   await record.save();
 
   return res.json({ message: "Email verified successfully" });
-});
+}));
 
 // ─── Step 3: Register ─────────────────────────────────────────────────────────
-router.post("/register", validate(registerSchema), async (req, res) => {
+router.post("/register", validate(registerSchema), asyncHandler(async (req, res) => {
   const { email, password, role, fullName } = req.body as {
     email: string;
     password: string;
@@ -79,7 +92,7 @@ router.post("/register", validate(registerSchema), async (req, res) => {
   const existing = await User.findOne({ email: normalizedEmail });
   if (existing) return res.status(400).json({ message: "Email already in use" });
 
-  const hash = await bcrypt.hash(password, 10);
+  const hash = await bcrypt.hash(password, BCRYPT_ROUNDS);
   const user = await User.create({ email: normalizedEmail, passwordHash: hash, role, fullName: fullName ?? undefined });
   const userId = user._id.toString();
 
@@ -94,7 +107,9 @@ router.post("/register", validate(registerSchema), async (req, res) => {
 
   const accessToken = signAccessToken({ id: userId, role });
   const refreshToken = signRefreshToken({ id: userId });
-  await RefreshToken.create({ userId: user._id, token: refreshToken, expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) });
+  await RefreshToken.create({ userId: user._id, token: refreshToken, expiresAt: new Date(Date.now() + REFRESH_TOKEN_TTL_MS) });
+
+  await createAuditLog({ action: "register", entity: "user", entityId: userId, metadata: { email: normalizedEmail, role } });
 
   return res.status(201).json({
     accessToken,
@@ -105,21 +120,32 @@ router.post("/register", validate(registerSchema), async (req, res) => {
     fullName: user.fullName ?? "",
     status: user.status,
   });
-});
+}));
 
-router.post("/login", validate(loginSchema), async (req, res) => {
+// ─── Login ────────────────────────────────────────────────────────────────────
+router.post("/login", validate(loginSchema), asyncHandler(async (req, res) => {
   const { email, password } = req.body;
   const user = await User.findOne({ email: email.toLowerCase() });
-  if (!user) return res.status(401).json({ message: "Invalid credentials" });
+  // Always run bcrypt even on miss — prevents timing-based user enumeration
+  const dummyHash = "$2b$12$invalidhashpaddingtomatchbcryptlength000000000000000000";
+  const valid = user ? await bcrypt.compare(password, user.passwordHash) : await bcrypt.compare(password, dummyHash).then(() => false);
+  if (!user || !valid) return res.status(401).json({ message: "Invalid credentials" });
   if (user.status !== "active") return res.status(403).json({ message: "Account suspended" });
 
-  const valid = await bcrypt.compare(password, user.passwordHash);
-  if (!valid) return res.status(401).json({ message: "Invalid credentials" });
-
   const userId = user._id.toString();
+
+  // Transparently upgrade hash cost if it was stored with an older/lower factor
+  const currentRounds = bcrypt.getRounds(user.passwordHash);
+  if (currentRounds < BCRYPT_ROUNDS) {
+    const newHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
+    await User.findByIdAndUpdate(userId, { passwordHash: newHash });
+  }
+
   const accessToken = signAccessToken({ id: userId, role: user.role });
   const refreshToken = signRefreshToken({ id: userId });
-  await RefreshToken.create({ userId: user._id, token: refreshToken, expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) });
+  await RefreshToken.create({ userId: user._id, token: refreshToken, expiresAt: new Date(Date.now() + REFRESH_TOKEN_TTL_MS) });
+
+  await createAuditLog({ action: "login", entity: "user", entityId: userId, metadata: { email: user.email } });
 
   return res.json({
     accessToken,
@@ -130,34 +156,45 @@ router.post("/login", validate(loginSchema), async (req, res) => {
     fullName: user.fullName ?? "",
     status: user.status,
   });
-});
+}));
 
-router.post("/refresh", async (req, res) => {
+// ─── Refresh token ────────────────────────────────────────────────────────────
+router.post("/refresh", asyncHandler(async (req, res) => {
   const { refreshToken } = req.body;
   if (!refreshToken) return res.status(400).json({ message: "Missing refresh token" });
   try {
     const decoded = verifyRefreshToken(refreshToken) as { id: string };
-    const stored = await RefreshToken.findOne({ token: refreshToken, expiresAt: { $gt: new Date() } });
+    // Atomic delete — if the token doesn't exist (reuse attack) this fails fast
+    const stored = await RefreshToken.findOneAndDelete({ token: refreshToken, expiresAt: { $gt: new Date() } });
     if (!stored) return res.status(401).json({ message: "Invalid refresh token" });
-    const user = await User.findById(decoded.id).select("role");
+    const user = await User.findById(decoded.id).select("role status");
     if (!user) return res.status(401).json({ message: "User not found" });
+    if (user.status !== "active") return res.status(403).json({ message: "Account suspended" });
+
+    // Issue a fresh access token AND a rotated refresh token
     const newAccess = signAccessToken({ id: decoded.id, role: user.role });
-    return res.json({ accessToken: newAccess });
+    const newRefresh = signRefreshToken({ id: decoded.id });
+    await RefreshToken.create({ userId: decoded.id, token: newRefresh, expiresAt: new Date(Date.now() + REFRESH_TOKEN_TTL_MS) });
+
+    return res.json({ accessToken: newAccess, refreshToken: newRefresh });
   } catch {
     return res.status(401).json({ message: "Invalid refresh token" });
   }
-});
+}));
 
-router.post("/logout", requireAuth, async (req: AuthRequest, res: Response) => {
+// ─── Logout ────────────────────────────────────────────────────────────────────
+router.post("/logout", requireAuth, asyncHandler<AuthRequest>(async (req, res) => {
   const { refreshToken } = req.body;
   if (refreshToken) await RefreshToken.deleteOne({ token: refreshToken });
+  await createAuditLog({ actorId: req.user!.id, action: "logout", entity: "user", entityId: req.user!.id });
   return res.json({ message: "Logged out" });
-});
+}));
 
-router.get("/me", requireAuth, async (req: AuthRequest, res: Response) => {
+// ─── Current user ───────────────────────────────────────────────────────────────
+router.get("/me", requireAuth, asyncHandler<AuthRequest>(async (req, res) => {
   const user = await User.findById(req.user!.id).select("email role fullName status");
   if (!user) return res.status(404).json({ message: "User not found" });
   return res.json({ id: user._id.toString(), email: user.email, role: user.role, fullName: user.fullName, status: user.status });
-});
+}));
 
 export default router;

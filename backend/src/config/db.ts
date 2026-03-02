@@ -8,6 +8,9 @@ export const connectDB = async (): Promise<void> => {
       minPoolSize: 2,        // keep 2 warm so first requests aren't cold
       serverSelectionTimeoutMS: 5_000,  // fail fast if Atlas unreachable
       socketTimeoutMS: 30_000,          // drop stalled queries after 30 s
+      // In production, indexes are pre-created via Atlas/migrations — skip the
+      // startup overhead of checking/building them on every deploy.
+      autoIndex: env.nodeEnv !== "production",
     });
     // eslint-disable-next-line no-console
     console.log("MongoDB connected");

@@ -20,6 +20,8 @@ export const requireAuth = (req: AuthRequest, res: Response, next: NextFunction)
   try {
     const decoded = verifyAccessToken(token) as { id: string; role: string };
     req.user = { id: decoded.id, role: decoded.role };
+    // Ensure auth-gated responses are never served from a shared cache
+    res.setHeader("Cache-Control", "private, no-store");
     return next();
   } catch {
     return res.status(401).json({ message: "Invalid token" });

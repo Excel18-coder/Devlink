@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -22,47 +23,40 @@ interface Developer {
   avatarUrl?: string;
 }
 
+interface DevPage {
+  developers: Developer[];
+  hasMore: boolean;
+}
+
 const Developers = () => {
   useSEO({
     title: "Hire Vetted Software Developers – Africa & Worldwide | Devlink",
     description: "Browse 10,000+ vetted software developers on Devlink. Filter by skills, hourly rate, availability, and location. Hire the best tech talent for remote, contract, or full-time roles.",
     canonical: "https://devlink.co.ke/developers",
   });
-  const [developers, setDevelopers] = useState<Developer[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(false);
-  const [page, setPage] = useState(1);
-  const [activeSearch, setActiveSearch] = useState("");
   const [search, setSearch] = useState("");
+  const [activeSearch, setActiveSearch] = useState("");
 
-  useEffect(() => {
-    doFetch(1, "");
-  }, []);
+  const {
+    data,
+    isLoading: loading,
+    isFetchingNextPage: loadingMore,
+    hasNextPage: hasMore,
+    fetchNextPage,
+  } = useInfiniteQuery<DevPage>({
+    queryKey: ["developers", activeSearch],
+    queryFn: ({ pageParam = 1 }) => {
+      const params = new URLSearchParams({ page: String(pageParam) });
+      if (activeSearch) params.set("search", activeSearch);
+      return api<DevPage>(`/developers?${params}`);
+    },
+    getNextPageParam: (last, all) => (last.hasMore ? all.length + 1 : undefined),
+    initialPageParam: 1,
+  });
 
-  const doFetch = async (p: number, term: string) => {
-    if (p === 1) { setLoading(true); } else { setLoadingMore(true); }
-    try {
-      const params = new URLSearchParams({ page: String(p) });
-      if (term) params.set("search", term);
-      const res = await api<{ developers: Developer[]; hasMore: boolean }>(`/developers?${params}`);
-      setDevelopers((prev) => (p === 1 ? res.developers : [...prev, ...res.developers]));
-      setHasMore(res.hasMore);
-      setPage(p);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-      setLoadingMore(false);
-    }
-  };
+  const developers = data?.pages.flatMap((p) => p.developers) ?? [];
 
-  const handleSearch = () => {
-    setActiveSearch(search);
-    doFetch(1, search);
-  };
-
-  const handleLoadMore = () => doFetch(page + 1, activeSearch);
+  const handleSearch = () => setActiveSearch(search);
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -153,7 +147,7 @@ const Developers = () => {
           {/* Load More */}
           {hasMore && !loading && (
             <div className="flex justify-center mt-10">
-              <Button variant="outline" onClick={handleLoadMore} disabled={loadingMore} className="min-w-40">
+              <Button variant="outline" onClick={() => fetchNextPage()} disabled={loadingMore} className="min-w-40">
                 {loadingMore ? (
                   <span className="flex items-center gap-2">
                     <span className="animate-spin inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full" />

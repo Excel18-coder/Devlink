@@ -37,4 +37,9 @@ const developerSchema = new Schema<IDeveloper>(
   { timestamps: true }
 );
 
+// Indexes for the developer listing filter and default sort
+developerSchema.index({ skills: 1 });
+developerSchema.index({ availability: 1 });
+developerSchema.index({ ratingAvg: -1, yearsExperience: -1 });
+
 export const Developer = mongoose.model<IDeveloper>("Developer", developerSchema);

@@ -1,4 +1,4 @@
-import { Router, Response } from "express";
+import { Router } from "express";
 import bcrypt from "bcryptjs";
 import { User } from "../models/User.js";
 import { Developer } from "../models/Developer.js";
@@ -9,12 +9,16 @@ import { Application } from "../models/Application.js";
 import { Showcase } from "../models/Showcase.js";
 import { AuditLog } from "../models/AuditLog.js";
 import { AdminConfig } from "../models/AdminConfig.js";
-import { AuthRequest, requireAuth } from "../middleware/auth.js";
+import { requireAuth, type AuthRequest } from "../middleware/auth.js";
 import { requireRole } from "../middleware/roles.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
+import { escapeRegex } from "../utils/escapeRegex.js";
+import { validateObjectIds } from "../middleware/validateObjectIds.js";
 
 const router = Router();
+router.use(validateObjectIds);
 
-router.get("/analytics", requireAuth, requireRole("admin"), async (_req: AuthRequest, res: Response) => {
+router.get("/analytics", requireAuth, requireRole("admin"), asyncHandler<AuthRequest>(async (_req, res) => {
   const now = new Date();
   const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
 
@@ -123,10 +127,10 @@ router.get("/analytics", requireAuth, requireRole("admin"), async (_req: AuthReq
     recentUsers: recentUsers.map((u) => ({ id: u._id.toString(), email: u.email, fullName: u.fullName, role: u.role, createdAt: u.createdAt })),
     recentJobs:  recentJobs.map((j) => ({ id: j._id.toString(), title: j.title, status: j.status, createdAt: j.createdAt }))
   });
-});
+}));
 
 // SSE endpoint for real-time analytics streaming
-router.get("/analytics/stream", requireAuth, requireRole("admin"), async (_req: AuthRequest, res: Response) => {
+router.get("/analytics/stream", requireAuth, requireRole("admin"), asyncHandler<AuthRequest>(async (_req, res) => {
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
   res.setHeader("Connection", "keep-alive");
@@ -165,69 +169,70 @@ router.get("/analytics/stream", requireAuth, requireRole("admin"), async (_req: 
     clearInterval(interval);
     clearInterval(keepAlive);
   });
-});
+}));
 
-router.get("/users", requireAuth, requireRole("admin"), async (req, res) => {
+router.get("/users", requireAuth, requireRole("admin"), asyncHandler(async (req, res) => {
   const { role, status, search, page = "1", limit = "20" } = req.query;
   const offset = (Number(page) - 1) * Number(limit);
 
   const filter: Record<string, unknown> = {};
   if (role) filter.role = String(role);
   if (status) filter.status = String(status);
-  if (search) filter.$or = [{ email: new RegExp(String(search), "i") }, { fullName: new RegExp(String(search), "i") }];
+  if (search) filter.$or = [{ email: new RegExp(escapeRegex(String(search)), "i") }, { fullName: new RegExp(escapeRegex(String(search)), "i") }];
 
   const users = await User.find(filter).sort({ createdAt: -1 }).skip(offset).limit(Number(limit)).select("email role fullName status createdAt");
   return res.json(users.map((u) => ({ id: u._id.toString(), email: u.email, role: u.role, fullName: u.fullName, status: u.status, createdAt: u.createdAt })));
-});
+}));
 
-router.patch("/users/:id/status", requireAuth, requireRole("admin"), async (req: AuthRequest, res: Response) => {
+router.patch("/users/:id/status", requireAuth, requireRole("admin"), asyncHandler<AuthRequest>(async (req, res) => {
   const { status } = req.body;
   if (!["active", "suspended", "pending"].includes(status)) return res.status(400).json({ message: "Invalid status" });
   await User.findByIdAndUpdate(req.params.id, { status });
   return res.json({ message: "User status updated" });
-});
+}));
 
-router.delete("/users/:id", requireAuth, requireRole("admin"), async (req: AuthRequest, res: Response) => {
+router.delete("/users/:id", requireAuth, requireRole("admin"), asyncHandler<AuthRequest>(async (req, res) => {
+  if (req.params.id === req.user!.id) return res.status(400).json({ message: "You cannot delete your own admin account" });
   await User.findByIdAndDelete(req.params.id);
   return res.json({ message: "User deleted" });
-});
+}));
 
-router.patch("/users/:id/role", requireAuth, requireRole("admin"), async (req: AuthRequest, res: Response) => {
+router.patch("/users/:id/role", requireAuth, requireRole("admin"), asyncHandler<AuthRequest>(async (req, res) => {
   const { role } = req.body;
   if (!["developer", "employer", "admin"].includes(role)) return res.status(400).json({ message: "Invalid role" });
   await User.findByIdAndUpdate(req.params.id, { role });
   return res.json({ message: "User role updated" });
-});
+}));
 
-router.get("/jobs", requireAuth, requireRole("admin"), async (_req, res) => {
+router.get("/jobs", requireAuth, requireRole("admin"), asyncHandler(async (_req, res) => {
   const jobs = await Job.find().sort({ createdAt: -1 }).limit(100);
   const empIds = jobs.map((j) => j.employerId.toString());
   const employers = await Employer.find({ userId: { $in: empIds } }).select("userId companyName");
   const empMap = new Map(employers.map((e) => [e.userId.toString(), e.companyName]));
   return res.json(jobs.map((j) => ({ id: j._id.toString(), title: j.title, status: j.status, companyName: empMap.get(j.employerId.toString()), createdAt: j.createdAt })));
-});
+}));
 
-router.patch("/jobs/:id/status", requireAuth, requireRole("admin"), async (req: AuthRequest, res: Response) => {
+router.patch("/jobs/:id/status", requireAuth, requireRole("admin"), asyncHandler<AuthRequest>(async (req, res) => {
   const { status } = req.body;
   if (!["open", "closed", "paused"].includes(status)) return res.status(400).json({ message: "Invalid status" });
   await Job.findByIdAndUpdate(req.params.id, { status });
   return res.json({ message: "Job status updated" });
-});
+}));
 
-router.delete("/jobs/:id", requireAuth, requireRole("admin"), async (req: AuthRequest, res: Response) => {
+router.delete("/jobs/:id", requireAuth, requireRole("admin"), asyncHandler<AuthRequest>(async (req, res) => {
   const job = await Job.findByIdAndDelete(req.params.id);
   if (!job) return res.status(404).json({ message: "Job not found" });
   return res.json({ message: "Job deleted" });
-});
+}));
 
-router.get("/config", requireAuth, requireRole("admin"), async (_req, res) => {
+router.get("/config", requireAuth, requireRole("admin"), asyncHandler(async (_req, res) => {
   const configs = await AdminConfig.find();
   const config: Record<string, string> = {};
   configs.forEach((c) => (config[c.key] = c.value));
   return res.json(config);
-});
+}));
 
-router.patch("/config", requireAuth, requireRole("admin"), async (req: AuthRequest, res: Response) => {
+router.patch("/config", requireAuth, requireRole("admin"), asyncHandler<AuthRequest>(async (req, res) => {
   const { key, value } = req.body;
   if (!key || value === undefined || value === "") return res.status(400).json({ message: "Key and value are required" });
   if (key === "commission_pct") {
@@ -243,9 +248,9 @@ router.patch("/config", requireAuth, requireRole("admin"), async (req: AuthReque
   }
   await AdminConfig.findOneAndUpdate({ key }, { value: String(value) }, { upsert: true });
   return res.json({ message: "Config updated" });
-});
+}));
 
-router.patch("/config/bulk", requireAuth, requireRole("admin"), async (req: AuthRequest, res: Response) => {
+router.patch("/config/bulk", requireAuth, requireRole("admin"), asyncHandler<AuthRequest>(async (req, res) => {
   const updates: Record<string, string> = req.body;
   if (!updates || typeof updates !== "object") return res.status(400).json({ message: "Body must be a key-value object" });
   const errors: string[] = [];
@@ -266,23 +271,23 @@ router.patch("/config/bulk", requireAuth, requireRole("admin"), async (req: Auth
   }
   if (errors.length) return res.status(400).json({ message: "Some entries failed", errors });
   return res.json({ message: "Config updated" });
-});
+}));
 
-router.delete("/config/:key", requireAuth, requireRole("admin"), async (req: AuthRequest, res: Response) => {
+router.delete("/config/:key", requireAuth, requireRole("admin"), asyncHandler<AuthRequest>(async (req, res) => {
   const { key } = req.params;
   const PROTECTED = ["commission_pct", "maintenance_mode", "max_file_size_mb"];
   if (PROTECTED.includes(key)) return res.status(400).json({ message: `Config key "${key}" is protected and cannot be deleted` });
   const result = await AdminConfig.findOneAndDelete({ key });
   if (!result) return res.status(404).json({ message: "Config key not found" });
   return res.json({ message: "Config key deleted" });
-});
+}));
 
-router.get("/disputes", requireAuth, requireRole("admin"), async (_req, res) => {
+router.get("/disputes", requireAuth, requireRole("admin"), asyncHandler(async (_req, res) => {
   const contracts = await Contract.find({ status: "disputed" }).sort({ updatedAt: -1 });
   return res.json(contracts.map((c) => ({ id: c._id.toString(), employerId: c.employerId.toString(), developerId: c.developerId.toString(), status: c.status, totalAmount: c.totalAmount, createdAt: c.createdAt })));
-});
+}));
 
-router.post("/disputes/:id/resolve", requireAuth, requireRole("admin"), async (req: AuthRequest, res: Response) => {
+router.post("/disputes/:id/resolve", requireAuth, requireRole("admin"), asyncHandler<AuthRequest>(async (req, res) => {
   const { resolution } = req.body;
   const contract = await Contract.findById(req.params.id);
   if (!contract) return res.status(404).json({ message: "Contract not found" });
@@ -291,9 +296,9 @@ router.post("/disputes/:id/resolve", requireAuth, requireRole("admin"), async (r
   const newStatus = resolution === "release" ? "completed" : "cancelled";
   await Contract.findByIdAndUpdate(req.params.id, { status: newStatus });
   return res.json({ message: "Dispute resolved" });
-});
+}));
 
-router.get("/audit-logs", requireAuth, requireRole("admin"), async (req, res) => {
+router.get("/audit-logs", requireAuth, requireRole("admin"), asyncHandler(async (req, res) => {
   const { entity, action, page = "1", limit = "50" } = req.query;
   const offset = (Number(page) - 1) * Number(limit);
 
@@ -311,20 +316,29 @@ router.get("/audit-logs", requireAuth, requireRole("admin"), async (req, res) =>
       entity: l.entity,
       entityId: l.entityId?.toString(),
       metadata: l.metadata,
-      createdAt: l.createdAt
+      createdAt: l.createdAt,
     }))
   );
-});
+}));
 
-router.post("/create-admin", requireAuth, requireRole("admin"), async (req: AuthRequest, res: Response) => {
+// ─── Create admin user ────────────────────────────────────────────────────────────
+router.post("/create-admin", requireAuth, requireRole("admin"), asyncHandler<AuthRequest>(async (req, res) => {
   const { email, password, fullName } = req.body;
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email))) {
+    return res.status(400).json({ message: "Valid email is required" });
+  }
+  if (!password || String(password).length < 8) {
+    return res.status(400).json({ message: "Password must be at least 8 characters" });
+  }
+  const existing = await User.findOne({ email: String(email).toLowerCase() });
+  if (existing) return res.status(400).json({ message: "Email already in use" });
   const hash = await bcrypt.hash(password, 10);
-  const user = await User.create({ email, passwordHash: hash, role: "admin", fullName });
+  const user = await User.create({ email: String(email).toLowerCase(), passwordHash: hash, role: "admin", fullName });
   return res.status(201).json({ id: user._id.toString() });
-});
+}));
 
 // ─── CONTRACTS ─────────────────────────────────────────────────────────────
-router.get("/contracts", requireAuth, requireRole("admin"), async (_req, res) => {
+router.get("/contracts", requireAuth, requireRole("admin"), asyncHandler(async (_req, res) => {
   const contracts = await Contract.find().sort({ createdAt: -1 }).limit(200);
 
   // Gather unique employer and developer user IDs
@@ -369,10 +383,10 @@ router.get("/contracts", requireAuth, requireRole("admin"), async (_req, res) =>
       };
     })
   );
-});
+}));
 
-// ─── EMPLOYERS ─────────────────────────────────────────────────────────────
-router.get("/employers", requireAuth, requireRole("admin"), async (_req, res) => {
+// ─── EMPLOYERS ───────────────────────────────────────────────────────────────────
+router.get("/employers", requireAuth, requireRole("admin"), asyncHandler(async (_req, res) => {
   const employers = await Employer.find().sort({ createdAt: -1 });
   const userIds = employers.map((e) => e.userId.toString());
 
@@ -410,10 +424,10 @@ router.get("/employers", requireAuth, requireRole("admin"), async (_req, res) =>
         memberSince: u?.createdAt ?? e.createdAt,
         jobCount: jobCountMap.get(uid) ?? 0,
         contractCount: contractCountMap.get(uid) ?? 0,
-        createdAt: e.createdAt
+        createdAt: e.createdAt,
       };
     })
   );
-});
+}));
 
 export default router;

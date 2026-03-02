@@ -20,5 +20,8 @@ const applicationSchema = new Schema<IApplication>(
 );
 
 applicationSchema.index({ jobId: 1, developerId: 1 }, { unique: true });
+// Support sorted look-ups without a full scan
+applicationSchema.index({ developerId: 1, createdAt: -1 });
+applicationSchema.index({ jobId: 1, createdAt: -1 });
 
 export const Application = mongoose.model<IApplication>("Application", applicationSchema);

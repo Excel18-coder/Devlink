@@ -68,4 +68,8 @@ const contractSchema = new Schema<IContract>(
   { timestamps: true }
 );
 
+// Support filtering contracts by party with status + time ordering
+contractSchema.index({ employerId: 1, status: 1, createdAt: -1 });
+contractSchema.index({ developerId: 1, status: 1, createdAt: -1 });
+
 export const Contract = mongoose.model<IContract>("Contract", contractSchema);

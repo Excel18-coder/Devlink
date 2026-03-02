@@ -24,8 +24,34 @@ import showcaseRoutes from "./routes/showcaseRoutes.js";
 
 const app = express();
 
+// Trust one layer of reverse-proxy (Render / Railway / Nginx) so that
+// express-rate-limit reads the real client IP from X-Forwarded-For instead of
+// the proxy's IP, and res.setHeader("X-Forwarded-Proto") works correctly.
+app.set("trust proxy", 1);
+
 // Middleware
-app.use(helmet());
+app.use(helmet({
+  // Strict CSP: no inline scripts, only same-origin + our API origin
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc:  ["'self'"],
+      styleSrc:   ["'self'", "'unsafe-inline'"],
+      imgSrc:     ["'self'", "data:", "https://res.cloudinary.com"],
+      connectSrc: ["'self'"],
+      frameSrc:   ["'none'"],
+      objectSrc:  ["'none'"],
+      upgradeInsecureRequests: [],
+    },
+  },
+  crossOriginEmbedderPolicy: false, // PDF iframe needs this relaxed
+  // Prevent MIME sniffing
+  noSniff: true,
+  // Force HTTPS for 1 year
+  strictTransportSecurity: { maxAge: 31_536_000, includeSubDomains: true },
+  // Don't leak the backend framework
+  hidePoweredBy: true,
+}));
 app.use(cors({
   origin: (origin, callback) => {
     if (!origin) return callback(null, true); // allow non-browser requests
@@ -43,13 +69,33 @@ app.use(cors({
   },
   credentials: true
 }));
-app.use(compression());
-app.use(express.json());
-app.use(morgan("dev"));
+app.use(compression({ threshold: 1024 })); // skip compression for responses < 1 KB
+app.use(express.json({ limit: "200kb" }));  // tighter than 1 MB — no route needs more
+app.use(morgan(env.nodeEnv === "production" ? "tiny" : "dev"));
 
-// Rate limiter
-const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 200 });
+// Health — registered before the rate limiter so it is always fast,
+// never throttled, and never blocked by maintenance mode.
+app.get("/api/health", (_req, res) => res.json({ status: "ok" }));
+
+// Rate limiter — general: 200 req / 15 min per IP
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 200,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Too many requests, please slow down." },
+});
 app.use(limiter);
+
+// Auth rate limiter — stricter: 20 req / 15 min per IP (covers brute-force on login/OTP)
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Too many authentication attempts. Please wait and try again." },
+});
+app.use("/api/auth", authLimiter);
 
 // Maintenance mode — cached in-memory for 30 s to avoid hitting DB on every request
 let _maintenanceCache: { value: boolean; cachedAt: number } | null = null;
@@ -77,6 +123,13 @@ app.use(async (req, res, next) => {
   return next();
 });
 
+// HTTP Caching — browsers and CDNs may reuse public GET responses for up to 60 s;
+// requireAuth overrides this to "private, no-store" for any auth-gated route.
+app.use((_req, res, next) => {
+  res.setHeader("Cache-Control", "public, max-age=60, stale-while-revalidate=30");
+  next();
+});
+
 // Routes
 app.use("/api/proxy", proxyRoutes);
 app.use("/api/auth", authRoutes);
@@ -89,9 +142,6 @@ app.use("/api/messages", messageRoutes);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/showcases", showcaseRoutes);
-
-// Health
-app.get("/api/health", (_req, res) => res.json({ status: "ok" }));
 
 // Error handler
 app.use(errorHandler);

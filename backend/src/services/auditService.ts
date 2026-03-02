@@ -10,10 +10,10 @@ interface LogParams {
 
 export const createAuditLog = async (p: LogParams): Promise<void> => {
   await AuditLog.create({
-    actorId: p.actorId ?? undefined,
+    actorId: p.actorId,
     action: p.action,
     entity: p.entity,
-    entityId: p.entityId ?? undefined,
-    metadata: p.metadata ?? {}
+    entityId: p.entityId,
+    metadata: p.metadata ?? {},
   });
 };

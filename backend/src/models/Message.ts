@@ -19,4 +19,7 @@ const messageSchema = new Schema<IMessage>(
   { timestamps: true }
 );
 
+// Essential: every message fetch queries by conversationId and sorts by createdAt
+messageSchema.index({ conversationId: 1, createdAt: 1 });
+
 export const Message = mongoose.model<IMessage>("Message", messageSchema);

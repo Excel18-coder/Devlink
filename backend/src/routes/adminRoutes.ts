@@ -453,7 +453,7 @@ router.get("/employers", requireAuth, requireRole("admin"), asyncHandler(async (
 // ═══════════════════════════════════════════════════════════════════
 
 /** GET /api/admin/news  — list all posts (any status) */
-router.get("/news", asyncHandler<AuthRequest>(async (req, res) => {
+router.get("/news", requireAuth, requireRole("admin"), asyncHandler<AuthRequest>(async (req, res) => {
   const page  = Math.max(1, parseInt(String(req.query.page  ?? "1"), 10));
   const limit = Math.min(50, Math.max(1, parseInt(String(req.query.limit ?? "20"), 10)));
   const skip  = (page - 1) * limit;
@@ -472,7 +472,7 @@ router.get("/news", asyncHandler<AuthRequest>(async (req, res) => {
 }));
 
 /** POST /api/admin/news  — create a new post */
-router.post("/news", validate(createNewsSchema), asyncHandler<AuthRequest>(async (req, res) => {
+router.post("/news", requireAuth, requireRole("admin"), validate(createNewsSchema), asyncHandler<AuthRequest>(async (req, res) => {
   const { title, body, excerpt, category, imageUrl, status } = req.body as {
     title: string; body: string; excerpt?: string;
     category?: string; imageUrl?: string; status?: string;
@@ -494,7 +494,7 @@ router.post("/news", validate(createNewsSchema), asyncHandler<AuthRequest>(async
 }));
 
 /** PATCH /api/admin/news/:id  — update a post */
-router.patch("/news/:id", validateObjectIds, validate(updateNewsSchema), asyncHandler<AuthRequest>(async (req, res) => {
+router.patch("/news/:id", requireAuth, requireRole("admin"), validateObjectIds, validate(updateNewsSchema), asyncHandler<AuthRequest>(async (req, res) => {
   const post = await NewsPost.findById(req.params.id);
   if (!post) return res.status(404).json({ message: "Post not found" });
 
@@ -523,7 +523,7 @@ router.patch("/news/:id", validateObjectIds, validate(updateNewsSchema), asyncHa
 }));
 
 /** DELETE /api/admin/news/:id  — permanently remove a post */
-router.delete("/news/:id", validateObjectIds, asyncHandler<AuthRequest>(async (req, res) => {
+router.delete("/news/:id", requireAuth, requireRole("admin"), validateObjectIds, asyncHandler<AuthRequest>(async (req, res) => {
   const post = await NewsPost.findByIdAndDelete(req.params.id);
   if (!post) return res.status(404).json({ message: "Post not found" });
   return res.json({ message: "Post deleted" });

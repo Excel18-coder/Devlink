@@ -8,9 +8,9 @@ export const createNewsSchema = z.object({
   imageUrl: z
     .string()
     .max(500)
-    .url("Must be a valid URL")
     .optional()
-    .or(z.literal("")),
+    .transform((v) => (v === "" ? undefined : v))
+    .refine((v) => v === undefined || /^https?:\/\/.+/.test(v), { message: "Must be a valid URL" }),
   status:   z.enum(["draft", "published"]).default("draft"),
 });
 

@@ -14,6 +14,24 @@ import { requireRole } from "../middleware/roles.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { escapeRegex } from "../utils/escapeRegex.js";
 import { validateObjectIds } from "../middleware/validateObjectIds.js";
+import { validate } from "../middleware/validate.js";
+import NewsPost from "../models/NewsPost.js";
+import { createNewsSchema, updateNewsSchema } from "../schemas/newsSchemas.js";
+
+/** Deterministic slug from title + optional numeric suffix to avoid collisions */
+async function makeUniqueSlug(title: string): Promise<string> {
+  const base = title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 120);
+  let slug = base;
+  let n = 1;
+  while (await NewsPost.exists({ slug })) {
+    slug = `${base}-${n++}`;
+  }
+  return slug;
+}
 
 const router = Router();
 router.use(validateObjectIds);
@@ -428,6 +446,85 @@ router.get("/employers", requireAuth, requireRole("admin"), asyncHandler(async (
       };
     })
   );
+}));
+
+// ═══════════════════════════════════════════════════════════════════
+//  NEWS MANAGEMENT  (admin only)
+// ═══════════════════════════════════════════════════════════════════
+
+/** GET /api/admin/news  — list all posts (any status) */
+router.get("/news", asyncHandler<AuthRequest>(async (req, res) => {
+  const page  = Math.max(1, parseInt(String(req.query.page  ?? "1"), 10));
+  const limit = Math.min(50, Math.max(1, parseInt(String(req.query.limit ?? "20"), 10)));
+  const skip  = (page - 1) * limit;
+  const status   = req.query.status as string | undefined;
+  const category = req.query.category as string | undefined;
+
+  const filter: Record<string, unknown> = {};
+  if (status && ["draft", "published"].includes(status)) filter.status = status;
+  if (category && ["jobs","platform","announcement","industry","general"].includes(category)) filter.category = category;
+
+  const [posts, total] = await Promise.all([
+    NewsPost.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+    NewsPost.countDocuments(filter),
+  ]);
+  return res.json({ posts, total, page, pages: Math.ceil(total / limit) });
+}));
+
+/** POST /api/admin/news  — create a new post */
+router.post("/news", validate(createNewsSchema), asyncHandler<AuthRequest>(async (req, res) => {
+  const { title, body, excerpt, category, imageUrl, status } = req.body as {
+    title: string; body: string; excerpt?: string;
+    category?: string; imageUrl?: string; status?: string;
+  };
+  const slug = await makeUniqueSlug(title);
+  const post = await NewsPost.create({
+    title, slug, body,
+    excerpt:    excerpt   ?? "",
+    category:   category  ?? "general",
+    imageUrl:   imageUrl  || undefined,
+    status:     status    ?? "draft",
+    authorId:   req.user!.id,
+    authorName: req.user!.fullName ?? req.user!.email,
+    publishedAt: status === "published" ? new Date() : undefined,
+  });
+  return res.status(201).json(post);
+}));
+
+/** PATCH /api/admin/news/:id  — update a post */
+router.patch("/news/:id", validateObjectIds, validate(updateNewsSchema), asyncHandler<AuthRequest>(async (req, res) => {
+  const post = await NewsPost.findById(req.params.id);
+  if (!post) return res.status(404).json({ message: "Post not found" });
+
+  const { title, body, excerpt, category, imageUrl, status } = req.body as Partial<{
+    title: string; body: string; excerpt: string;
+    category: string; imageUrl: string; status: string;
+  }>;
+
+  if (title !== undefined) {
+    post.title = title;
+    post.slug  = await makeUniqueSlug(title);   // regenerate slug when title changes
+  }
+  if (body     !== undefined) post.body     = body;
+  if (excerpt  !== undefined) post.excerpt  = excerpt;
+  if (category !== undefined) post.category = category as typeof post.category;
+  if (imageUrl !== undefined) post.imageUrl = imageUrl || undefined;
+  if (status   !== undefined) {
+    const wasPublished = post.status === "published";
+    post.status = status as typeof post.status;
+    if (status === "published" && !wasPublished) post.publishedAt = new Date();
+    if (status === "draft"      &&  wasPublished) post.publishedAt = undefined;
+  }
+
+  await post.save();
+  return res.json(post);
+}));
+
+/** DELETE /api/admin/news/:id  — permanently remove a post */
+router.delete("/news/:id", validateObjectIds, asyncHandler<AuthRequest>(async (req, res) => {
+  const post = await NewsPost.findByIdAndDelete(req.params.id);
+  if (!post) return res.status(404).json({ message: "Post not found" });
+  return res.json({ message: "Post deleted" });
 }));
 
 export default router;

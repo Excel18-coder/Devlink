@@ -6,11 +6,12 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { api, API_BASE } from "@/lib/api";
-import { Users, Briefcase, DollarSign, AlertTriangle, Settings, ScrollText, TrendingUp, RefreshCw, Trash2, ShieldCheck, Save, RotateCcw, Building2, CreditCard, FileText } from "lucide-react";
+import { Users, Briefcase, DollarSign, AlertTriangle, Settings, ScrollText, TrendingUp, RefreshCw, Trash2, ShieldCheck, Save, RotateCcw, Building2, CreditCard, FileText, Newspaper, Pencil, PlusCircle, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   LineChart, Line, AreaChart, Area, BarChart, Bar,
@@ -115,6 +116,31 @@ interface LiveStats {
   ts: number;
 }
 
+interface NewsPostAdmin {
+  _id: string;
+  title: string;
+  slug: string;
+  excerpt: string;
+  body: string;
+  category: string;
+  imageUrl?: string;
+  authorName: string;
+  status: "draft" | "published";
+  publishedAt?: string;
+  createdAt: string;
+}
+
+const NEWS_CATEGORIES = ["jobs", "platform", "announcement", "industry", "general"] as const;
+
+const defaultNewsForm = {
+  title:    "",
+  body:     "",
+  excerpt:  "",
+  category: "general",
+  imageUrl: "",
+  status:   "draft" as "draft" | "published",
+};
+
 const statusColor = (s: string) =>
   s === "active" || s === "open" ? "default" : s === "suspended" || s === "closed" ? "destructive" : "secondary";
 
@@ -137,6 +163,11 @@ const AdminDashboard = () => {
   const [config, setConfig] = useState<Record<string, string>>({});
   const [configEdit, setConfigEdit] = useState<Record<string, string>>({});
   const [newAdminForm, setNewAdminForm] = useState({ email: "", password: "", fullName: "" });
+  const [newsPosts, setNewsPosts] = useState<NewsPostAdmin[]>([]);
+  const [newsForm, setNewsForm] = useState(defaultNewsForm);
+  const [editingPostId, setEditingPostId] = useState<string | null>(null);
+  const [newsFormOpen, setNewsFormOpen] = useState(false);
+  const [newsSaving, setNewsSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
@@ -193,17 +224,22 @@ const AdminDashboard = () => {
     setConfigEdit(data);
   }, []);
 
+  const fetchNews = useCallback(async () => {
+    const data = await api<{ posts: NewsPostAdmin[] }>("/admin/news?limit=50");
+    setNewsPosts(data.posts ?? []);
+  }, []);
+
   const fetchAll = useCallback(async (showRefreshing = false) => {
     if (showRefreshing) setRefreshing(true);
     try {
-      await Promise.all([fetchAnalytics(), fetchUsers(), fetchJobs(), fetchContracts(), fetchEmployers(), fetchDisputes(), fetchAuditLogs(), fetchConfig()]);
+      await Promise.all([fetchAnalytics(), fetchUsers(), fetchJobs(), fetchContracts(), fetchEmployers(), fetchDisputes(), fetchAuditLogs(), fetchConfig(), fetchNews()]);
     } catch (err) {
       console.error(err);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [fetchAnalytics, fetchUsers, fetchJobs, fetchContracts, fetchEmployers, fetchDisputes, fetchAuditLogs, fetchConfig]);
+  }, [fetchAnalytics, fetchUsers, fetchJobs, fetchContracts, fetchEmployers, fetchDisputes, fetchAuditLogs, fetchConfig, fetchNews]);
 
   // Initial load + auto-refresh every 30s
   useEffect(() => {
@@ -405,6 +441,71 @@ const AdminDashboard = () => {
     } catch { toast({ title: "Failed to create admin", variant: "destructive" }); }
   };
 
+  // ─── News handlers ───────────────────────────────────────────────────────────
+  const openCreateNews = () => {
+    setEditingPostId(null);
+    setNewsForm(defaultNewsForm);
+    setNewsFormOpen(true);
+  };
+
+  const openEditNews = (post: NewsPostAdmin) => {
+    setEditingPostId(post._id);
+    setNewsForm({
+      title:    post.title,
+      body:     post.body,
+      excerpt:  post.excerpt ?? "",
+      category: post.category,
+      imageUrl: post.imageUrl ?? "",
+      status:   post.status,
+    });
+    setNewsFormOpen(true);
+  };
+
+  const handleSaveNews = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newsForm.title.trim() || !newsForm.body.trim()) {
+      toast({ title: "Title and body are required", variant: "destructive" });
+      return;
+    }
+    setNewsSaving(true);
+    try {
+      if (editingPostId) {
+        await api(`/admin/news/${editingPostId}`, { method: "PATCH", body: newsForm });
+        toast({ title: "Post updated" });
+      } else {
+        await api("/admin/news", { method: "POST", body: newsForm });
+        toast({ title: "Post created" });
+      }
+      setNewsFormOpen(false);
+      setEditingPostId(null);
+      setNewsForm(defaultNewsForm);
+      fetchNews();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to save post";
+      toast({ title: msg, variant: "destructive" });
+    } finally {
+      setNewsSaving(false);
+    }
+  };
+
+  const handleToggleNewsStatus = async (post: NewsPostAdmin) => {
+    const newStatus = post.status === "published" ? "draft" : "published";
+    try {
+      await api(`/admin/news/${post._id}`, { method: "PATCH", body: { status: newStatus } });
+      toast({ title: `Post ${newStatus === "published" ? "published" : "unpublished"}` });
+      fetchNews();
+    } catch { toast({ title: "Failed to update status", variant: "destructive" }); }
+  };
+
+  const handleDeleteNews = async (postId: string) => {
+    if (!confirm("Permanently delete this news post?")) return;
+    try {
+      await api(`/admin/news/${postId}`, { method: "DELETE" });
+      toast({ title: "Post deleted" });
+      fetchNews();
+    } catch { toast({ title: "Failed to delete post", variant: "destructive" }); }
+  };
+
   const displayStats = liveStats ?? { totalUsers: analytics?.totalUsers ?? 0, openJobs: analytics?.openJobs ?? 0, activeContracts: analytics?.activeContracts ?? 0 };
 
   if (loading) {
@@ -446,6 +547,7 @@ const AdminDashboard = () => {
               <TabsTrigger value="disputes" className="flex items-center justify-center gap-1 text-xs sm:text-sm px-2 py-1.5"><AlertTriangle className="h-3.5 w-3.5 shrink-0" /><span>Disputes</span>{disputes.length > 0 && <Badge variant="destructive" className="ml-1 text-xs">{disputes.length}</Badge>}</TabsTrigger>
               <TabsTrigger value="audit" className="flex items-center justify-center gap-1 text-xs sm:text-sm px-2 py-1.5"><ScrollText className="h-3.5 w-3.5 shrink-0" /><span>Audit</span></TabsTrigger>
               <TabsTrigger value="config" className="flex items-center justify-center gap-1 text-xs sm:text-sm px-2 py-1.5"><Settings className="h-3.5 w-3.5 shrink-0" /><span>Config</span></TabsTrigger>
+              <TabsTrigger value="news" className="flex items-center justify-center gap-1 text-xs sm:text-sm px-2 py-1.5"><Newspaper className="h-3.5 w-3.5 shrink-0" /><span>News</span></TabsTrigger>
             </TabsList>
 
             {/* ─── OVERVIEW ─────────────────────────────────────────────────── */}
@@ -1632,6 +1734,186 @@ const AdminDashboard = () => {
                 )}
               </div>
             </TabsContent>
+
+            {/* ─── NEWS MANAGEMENT ─────────────────────────────────────── */}
+            <TabsContent value="news" className="space-y-6">
+              <div className="flex items-center justify-between flex-wrap gap-3">
+                <div>
+                  <h2 className="text-lg font-heading font-semibold text-foreground">News &amp; Announcements</h2>
+                  <p className="text-sm text-muted-foreground">Publish updates, job market insights, and platform news.</p>
+                </div>
+                <Button size="sm" onClick={openCreateNews} className="gap-1.5">
+                  <PlusCircle className="h-4 w-4" /> New Post
+                </Button>
+              </div>
+
+              {/* ── Create / Edit form ──────────────────────────────────── */}
+              {newsFormOpen && (
+                <Card className="border-primary/30">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base">
+                      {editingPostId ? "Edit Post" : "New Post"}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <form onSubmit={handleSaveNews} className="space-y-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="sm:col-span-2 space-y-1">
+                          <Label className="text-xs text-muted-foreground">Title *</Label>
+                          <Input
+                            value={newsForm.title}
+                            onChange={(e) => setNewsForm((f) => ({ ...f, title: e.target.value }))}
+                            placeholder="Post title…"
+                            maxLength={200}
+                            required
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs text-muted-foreground">Category</Label>
+                          <Select
+                            value={newsForm.category}
+                            onValueChange={(v) => setNewsForm((f) => ({ ...f, category: v }))}
+                          >
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              {NEWS_CATEGORIES.map((c) => (
+                                <SelectItem key={c} value={c} className="capitalize">{c}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs text-muted-foreground">Status</Label>
+                          <Select
+                            value={newsForm.status}
+                            onValueChange={(v) => setNewsForm((f) => ({ ...f, status: v as "draft" | "published" }))}
+                          >
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="draft">Draft</SelectItem>
+                              <SelectItem value="published">Published</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="sm:col-span-2 space-y-1">
+                          <Label className="text-xs text-muted-foreground">Excerpt (short summary shown in lists)</Label>
+                          <Input
+                            value={newsForm.excerpt}
+                            onChange={(e) => setNewsForm((f) => ({ ...f, excerpt: e.target.value }))}
+                            placeholder="Brief summary…"
+                            maxLength={500}
+                          />
+                        </div>
+                        <div className="sm:col-span-2 space-y-1">
+                          <Label className="text-xs text-muted-foreground">Cover Image URL (optional)</Label>
+                          <Input
+                            value={newsForm.imageUrl}
+                            onChange={(e) => setNewsForm((f) => ({ ...f, imageUrl: e.target.value }))}
+                            placeholder="https://…"
+                            type="url"
+                          />
+                        </div>
+                        <div className="sm:col-span-2 space-y-1">
+                          <Label className="text-xs text-muted-foreground">Body *</Label>
+                          <Textarea
+                            value={newsForm.body}
+                            onChange={(e) => setNewsForm((f) => ({ ...f, body: e.target.value }))}
+                            placeholder="Write the full article here. Use blank lines to separate paragraphs."
+                            className="min-h-[220px] font-mono text-sm resize-y"
+                            maxLength={50000}
+                            required
+                          />
+                          <p className="text-xs text-muted-foreground">{newsForm.body.length.toLocaleString()} / 50,000 characters</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3 pt-2">
+                        <Button type="submit" size="sm" disabled={newsSaving}>
+                          {newsSaving ? "Saving…" : editingPostId ? "Update Post" : "Create Post"}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => { setNewsFormOpen(false); setEditingPostId(null); setNewsForm(defaultNewsForm); }}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    </form>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* ── Post list ───────────────────────────────────────────── */}
+              {newsPosts.length === 0 && !newsFormOpen && (
+                <div className="text-center py-16 text-muted-foreground">
+                  <Newspaper className="h-10 w-10 mx-auto mb-3 opacity-30" />
+                  <p className="font-medium">No posts yet</p>
+                  <p className="text-sm mt-1">Click &ldquo;New Post&rdquo; to publish your first article.</p>
+                </div>
+              )}
+              <div className="space-y-3">
+                {newsPosts.map((post) => (
+                  <Card key={post._id} className="flex flex-col sm:flex-row sm:items-center gap-3 p-4">
+                    {post.imageUrl && (
+                      <img
+                        src={post.imageUrl}
+                        alt={post.title}
+                        className="w-full sm:w-24 h-20 object-cover rounded-lg flex-shrink-0"
+                      />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap mb-1">
+                        <Badge variant={post.status === "published" ? "default" : "secondary"} className="text-xs capitalize">
+                          {post.status}
+                        </Badge>
+                        <Badge variant="outline" className="text-xs capitalize">{post.category}</Badge>
+                      </div>
+                      <p className="font-medium text-foreground text-sm truncate">{post.title}</p>
+                      {post.excerpt && (
+                        <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{post.excerpt}</p>
+                      )}
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {post.status === "published" && post.publishedAt
+                          ? `Published ${new Date(post.publishedAt).toLocaleDateString()}`
+                          : `Created ${new Date(post.createdAt).toLocaleDateString()}`}
+                        {" · "}{post.authorName}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title={post.status === "published" ? "Unpublish" : "Publish"}
+                        onClick={() => handleToggleNewsStatus(post)}
+                        className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                      >
+                        {post.status === "published" ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title="Edit"
+                        onClick={() => openEditNews(post)}
+                        className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title="Delete"
+                        onClick={() => handleDeleteNews(post._id)}
+                        className="h-8 w-8 text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </TabsContent>
+
           </Tabs>
         </div>
       </div>

@@ -21,6 +21,7 @@ import messageRoutes from "./routes/messageRoutes.js";
 import reviewRoutes from "./routes/reviewRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import showcaseRoutes from "./routes/showcaseRoutes.js";
+import newsRoutes from "./routes/newsRoutes.js";
 
 const app = express();
 
@@ -142,6 +143,7 @@ app.use("/api/messages", messageRoutes);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/showcases", showcaseRoutes);
+app.use("/api/news", newsRoutes);
 
 // Error handler
 app.use(errorHandler);

@@ -27,6 +27,8 @@ const Messages = lazy(() => import("./pages/Messages"));
 const Showcase = lazy(() => import("./pages/Showcase"));
 const ShowcaseDetail = lazy(() => import("./pages/ShowcaseDetail"));
 const EditJob = lazy(() => import("./pages/EditJob"));
+const News = lazy(() => import("./pages/News"));
+const NewsDetail = lazy(() => import("./pages/NewsDetail"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -57,6 +59,8 @@ const App = () => (
               <Routes>
                 {/* Public — no gate */}
                 <Route path="/" element={<Index />} />
+                <Route path="/news" element={<News />} />
+                <Route path="/news/:idOrSlug" element={<NewsDetail />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
 

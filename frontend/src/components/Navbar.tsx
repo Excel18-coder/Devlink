@@ -35,6 +35,9 @@ const Navbar = () => {
           <Link to="/showcase" className="text-sm text-secondary-foreground/70 hover:text-primary transition-colors font-medium">
             Showcase
           </Link>
+          <Link to="/news" className="text-sm text-secondary-foreground/70 hover:text-primary transition-colors font-medium">
+            News
+          </Link>
           {user && (
             <Link to="/messages" className="text-sm text-secondary-foreground/70 hover:text-primary transition-colors font-medium">
               Messages
@@ -110,6 +113,13 @@ const Navbar = () => {
               className="text-sm text-secondary-foreground/70 hover:text-primary py-3.5 transition-colors"
             >
               Showcase
+            </Link>
+            <Link
+              to="/news"
+              onClick={() => setMobileOpen(false)}
+              className="text-sm text-secondary-foreground/70 hover:text-primary py-3.5 transition-colors"
+            >
+              News
             </Link>
             {user && (
               <Link

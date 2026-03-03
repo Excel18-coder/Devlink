@@ -1877,7 +1877,7 @@ const AdminDashboard = () => {
                         {post.status === "published" && post.publishedAt
                           ? `Published ${new Date(post.publishedAt).toLocaleDateString()}`
                           : `Created ${new Date(post.createdAt).toLocaleDateString()}`}
-                        {" · "}{post.authorName}
+                        {" · "}Devlink Team
                       </p>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">

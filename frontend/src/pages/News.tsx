@@ -174,7 +174,7 @@ const News = () => {
                         {formatDate(post.publishedAt ?? post.createdAt)}
                       </span>
                       <span>·</span>
-                      <span>{post.authorName}</span>
+                      <span>Devlink Team</span>
                     </div>
                   </div>
                 </Link>

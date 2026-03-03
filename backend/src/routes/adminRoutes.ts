@@ -478,6 +478,8 @@ router.post("/news", validate(createNewsSchema), asyncHandler<AuthRequest>(async
     category?: string; imageUrl?: string; status?: string;
   };
   const slug = await makeUniqueSlug(title);
+  const author = await User.findById(req.user!.id).lean().select("fullName email");
+  const authorName = author?.fullName ?? author?.email ?? "Admin";
   const post = await NewsPost.create({
     title, slug, body,
     excerpt:    excerpt   ?? "",
@@ -485,7 +487,7 @@ router.post("/news", validate(createNewsSchema), asyncHandler<AuthRequest>(async
     imageUrl:   imageUrl  || undefined,
     status:     status    ?? "draft",
     authorId:   req.user!.id,
-    authorName: req.user!.fullName ?? req.user!.email,
+    authorName,
     publishedAt: status === "published" ? new Date() : undefined,
   });
   return res.status(201).json(post);

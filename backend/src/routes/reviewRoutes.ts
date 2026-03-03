@@ -52,17 +52,6 @@ router.post("/", requireAuth, validate(createReviewSchema), asyncHandler<AuthReq
   return res.status(201).json({ id: review._id.toString() });
 }));
 
-  // Recalculate and persist the reviewee's average rating
-  const avgResult = await Review.aggregate([
-    { $match: { revieweeId: review.revieweeId } },
-    { $group: { _id: null, avg: { $avg: "$rating" } } },
-  ]);
-  const avg = avgResult[0]?.avg ?? 0;
-  await Developer.findOneAndUpdate({ userId: revieweeId }, { ratingAvg: Math.round(avg * 10) / 10 });
-
-  return res.status(201).json({ id: review._id.toString() });
-}));
-
 // ─── Public: reviews for a user ──────────────────────────────────────────────
 router.get("/user/:id", asyncHandler(async (req, res) => {
   const reviews = await Review.find({ revieweeId: req.params.id }).sort({ createdAt: -1 }).lean();

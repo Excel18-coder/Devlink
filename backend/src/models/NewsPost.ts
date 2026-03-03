@@ -40,6 +40,5 @@ const newsPostSchema = new Schema<INewsPost>(
 
 newsPostSchema.index({ status: 1, publishedAt: -1 });
 newsPostSchema.index({ category: 1, status: 1 });
-newsPostSchema.index({ slug: 1 }, { unique: true });
 
 export default mongoose.model<INewsPost>("NewsPost", newsPostSchema);

@@ -122,7 +122,7 @@ const JobDetail = () => {
             <ArrowLeft className="h-4 w-4 mr-1" /> Back
           </Button>
           <div className="grid lg:grid-cols-3 gap-8">
-            {/* Main Content */
+            {/* Main Content */}
             <div className="lg:col-span-2">
               <Card>
                 <CardHeader>

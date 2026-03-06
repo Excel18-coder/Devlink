@@ -175,7 +175,7 @@ const EditProfile = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <div className="pt-24 pb-16">
+      <div className="pt-36 pb-16">
         <div className="container mx-auto px-4 max-w-2xl">
 
           {/* New sign-up welcome banner */}

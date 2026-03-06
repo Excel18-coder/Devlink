@@ -105,7 +105,7 @@ const JobDetail = () => {
     return (
       <div className="min-h-screen bg-background">
         <Navbar />
-        <div className="pt-24 pb-16 container mx-auto px-4">
+        <div className="pt-36 pb-16 container mx-auto px-4">
           <p>Job not found</p>
         </div>
         <Footer />
@@ -116,13 +116,13 @@ const JobDetail = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <div className="pt-24 pb-16">
+      <div className="pt-36 pb-16">
         <div className="container mx-auto px-4">
           <Button variant="ghost" size="sm" className="mb-4 -ml-1" onClick={() => navigate(-1)}>
             <ArrowLeft className="h-4 w-4 mr-1" /> Back
           </Button>
           <div className="grid lg:grid-cols-3 gap-8">
-            {/* Main Content */}
+            {/* Main Content */
             <div className="lg:col-span-2">
               <Card>
                 <CardHeader>

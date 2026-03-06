@@ -15,6 +15,8 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { escapeRegex } from "../utils/escapeRegex.js";
 import { validateObjectIds } from "../middleware/validateObjectIds.js";
 import { validate } from "../middleware/validate.js";
+import { upload } from "../middleware/upload.js";
+import { uploadToCloudinary } from "../utils/cloudinaryUpload.js";
 import NewsPost from "../models/NewsPost.js";
 import { createNewsSchema, updateNewsSchema } from "../schemas/newsSchemas.js";
 
@@ -471,12 +473,22 @@ router.get("/news", requireAuth, requireRole("admin"), asyncHandler<AuthRequest>
   return res.json({ posts, total, page, pages: Math.ceil(total / limit) });
 }));
 
-/** POST /api/admin/news  — create a new post */
-router.post("/news", requireAuth, requireRole("admin"), validate(createNewsSchema), asyncHandler<AuthRequest>(async (req, res) => {
+/** POST /api/admin/news  — create a new post (accepts multipart/form-data or JSON) */
+router.post("/news", requireAuth, requireRole("admin"), upload.single("image"), validate(createNewsSchema), asyncHandler<AuthRequest>(async (req, res) => {
   const { title, body, excerpt, category, imageUrl, status } = req.body as {
     title: string; body: string; excerpt?: string;
     category?: string; imageUrl?: string; status?: string;
   };
+  let finalImageUrl: string | undefined = imageUrl || undefined;
+  let imagePublicId: string | undefined;
+
+  // If a file was uploaded, push it to Cloudinary and use the result URL
+  if (req.file) {
+    const result = await uploadToCloudinary(req.file.buffer, { folder: "afristack-news", resource_type: "image" });
+    finalImageUrl = result.secureUrl;
+    imagePublicId = result.publicId;
+  }
+
   const slug = await makeUniqueSlug(title);
   const author = await User.findById(req.user!.id).lean().select("fullName email");
   const authorName = author?.fullName ?? author?.email ?? "Admin";
@@ -484,7 +496,8 @@ router.post("/news", requireAuth, requireRole("admin"), validate(createNewsSchem
     title, slug, body,
     excerpt:    excerpt   ?? "",
     category:   category  ?? "general",
-    imageUrl:   imageUrl  || undefined,
+    imageUrl:   finalImageUrl,
+    imagePublicId,
     status:     status    ?? "draft",
     authorId:   req.user!.id,
     authorName,
@@ -493,8 +506,8 @@ router.post("/news", requireAuth, requireRole("admin"), validate(createNewsSchem
   return res.status(201).json(post);
 }));
 
-/** PATCH /api/admin/news/:id  — update a post */
-router.patch("/news/:id", requireAuth, requireRole("admin"), validateObjectIds, validate(updateNewsSchema), asyncHandler<AuthRequest>(async (req, res) => {
+/** PATCH /api/admin/news/:id  — update a post (accepts multipart/form-data or JSON) */
+router.patch("/news/:id", requireAuth, requireRole("admin"), validateObjectIds, upload.single("image"), validate(updateNewsSchema), asyncHandler<AuthRequest>(async (req, res) => {
   const post = await NewsPost.findById(req.params.id);
   if (!post) return res.status(404).json({ message: "Post not found" });
 
@@ -503,14 +516,22 @@ router.patch("/news/:id", requireAuth, requireRole("admin"), validateObjectIds, 
     category: string; imageUrl: string; status: string;
   }>;
 
+  // Handle Cloudinary upload if a new file was sent
+  if (req.file) {
+    const result = await uploadToCloudinary(req.file.buffer, { folder: "afristack-news", resource_type: "image" });
+    post.imageUrl = result.secureUrl;
+    post.imagePublicId = result.publicId;
+  } else if (imageUrl !== undefined) {
+    post.imageUrl = imageUrl || undefined;
+  }
+
   if (title !== undefined) {
     post.title = title;
-    post.slug  = await makeUniqueSlug(title);   // regenerate slug when title changes
+    post.slug  = await makeUniqueSlug(title);
   }
   if (body     !== undefined) post.body     = body;
   if (excerpt  !== undefined) post.excerpt  = excerpt;
   if (category !== undefined) post.category = category as typeof post.category;
-  if (imageUrl !== undefined) post.imageUrl = imageUrl || undefined;
   if (status   !== undefined) {
     const wasPublished = post.status === "published";
     post.status = status as typeof post.status;

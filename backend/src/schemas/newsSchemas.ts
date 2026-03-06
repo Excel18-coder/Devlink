@@ -5,12 +5,7 @@ export const createNewsSchema = z.object({
   body:     z.string().min(10, "Body too short").max(50_000, "Body too long"),
   excerpt:  z.string().max(500, "Excerpt too long").optional().default(""),
   category: z.enum(["jobs", "platform", "announcement", "industry", "general"]).default("general"),
-  imageUrl: z
-    .string()
-    .max(500)
-    .optional()
-    .transform((v) => (v === "" ? undefined : v))
-    .refine((v) => v === undefined || /^https?:\/\/.+/.test(v), { message: "Must be a valid URL" }),
+  imageUrl: z.string().max(1000).optional().transform((v) => (v === "" ? undefined : v)),
   status:   z.enum(["draft", "published"]).default("draft"),
 });
 

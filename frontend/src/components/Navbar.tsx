@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Code2, Menu, X, MessageSquare, User, LayoutDashboard } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import NewsCarousel from "@/components/NewsCarousel";
 
 const Navbar = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -16,6 +17,9 @@ const Navbar = () => {
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-secondary/95 backdrop-blur-md border-b border-border/10">
+      {/* ── News ticker — visible to all users including guests ── */}
+      <NewsCarousel />
+
       <div className="container mx-auto flex items-center justify-between h-16 px-4">
         <Link to="/" className="flex items-center gap-2">
           <Code2 className="h-7 w-7 text-primary" />

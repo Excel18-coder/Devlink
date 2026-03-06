@@ -4,18 +4,19 @@ export type NewsCategory = "jobs" | "platform" | "announcement" | "industry" | "
 export type NewsStatus   = "draft" | "published";
 
 export interface INewsPost extends Document {
-  title:       string;
-  slug:        string;
-  excerpt:     string;
-  body:        string;
-  category:    NewsCategory;
-  imageUrl?:   string;
-  authorId:    mongoose.Types.ObjectId;
-  authorName:  string;
-  status:      NewsStatus;
-  publishedAt?: Date;
-  createdAt:   Date;
-  updatedAt:   Date;
+  title:          string;
+  slug:           string;
+  excerpt:        string;
+  body:           string;
+  category:       NewsCategory;
+  imageUrl?:      string;
+  imagePublicId?: string;
+  authorId:       mongoose.Types.ObjectId;
+  authorName:     string;
+  status:         NewsStatus;
+  publishedAt?:   Date;
+  createdAt:      Date;
+  updatedAt:      Date;
 }
 
 const newsPostSchema = new Schema<INewsPost>(
@@ -29,8 +30,9 @@ const newsPostSchema = new Schema<INewsPost>(
       enum: ["jobs", "platform", "announcement", "industry", "general"],
       default: "general",
     },
-    imageUrl:    { type: String },
-    authorId:    { type: Schema.Types.ObjectId, ref: "User", required: true },
+    imageUrl:       { type: String },
+    imagePublicId:  { type: String },
+    authorId:       { type: Schema.Types.ObjectId, ref: "User", required: true },
     authorName:  { type: String, required: true },
     status:      { type: String, enum: ["draft", "published"], default: "draft" },
     publishedAt: { type: Date },

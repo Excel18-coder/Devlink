@@ -52,7 +52,7 @@ const NewsDetail = () => {
     return (
       <div className="min-h-screen bg-background">
         <Navbar />
-        <div className="pt-24 pb-16 container mx-auto px-4 max-w-3xl">
+        <div className="pt-36 pb-16 container mx-auto px-4 max-w-3xl">
           <div className="animate-pulse space-y-4">
             <div className="h-4 bg-muted rounded w-24" />
             <div className="h-8 bg-muted rounded w-3/4" />
@@ -92,7 +92,7 @@ const NewsDetail = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <div className="pt-24 pb-16">
+      <div className="pt-36 pb-16">
         <div className="container mx-auto px-4 max-w-3xl">
           {/* Back link */}
           <Link
@@ -111,12 +111,12 @@ const NewsDetail = () => {
           </div>
 
           {/* Title */}
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-heading font-bold text-foreground leading-tight mb-4">
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-heading font-bold text-foreground leading-tight mb-5">
             {post.title}
           </h1>
 
           {/* Meta */}
-          <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground mb-8 pb-8 border-b border-border">
+          <div className="flex flex-wrap items-center gap-4 text-base text-muted-foreground mb-8 pb-8 border-b border-border font-medium">
             <span className="flex items-center gap-1.5">
               <User className="h-4 w-4" />
               Devlink Team
@@ -140,15 +140,15 @@ const NewsDetail = () => {
 
           {/* Excerpt */}
           {post.excerpt && (
-            <p className="text-lg text-muted-foreground leading-relaxed mb-8 font-medium italic border-l-4 border-primary/40 pl-4">
+            <p className="text-xl text-foreground/80 leading-relaxed mb-8 font-medium italic border-l-4 border-primary/50 pl-5">
               {post.excerpt}
             </p>
           )}
 
           {/* Body — render newlines as paragraphs */}
-          <div className="prose prose-sm sm:prose max-w-none text-foreground">
+          <div className="prose prose-base sm:prose-lg max-w-none text-foreground">
             {post.body.split("\n\n").map((para, i) => (
-              <p key={i} className="mb-4 leading-relaxed text-foreground/90">
+              <p key={i} className="mb-5 leading-relaxed text-foreground text-base sm:text-lg">
                 {para.trim()}
               </p>
             ))}

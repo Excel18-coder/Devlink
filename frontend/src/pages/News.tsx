@@ -67,18 +67,18 @@ const News = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <div className="pt-24 pb-16">
+      <div className="pt-36 pb-16">
         <div className="container mx-auto px-4">
           {/* Header */}
           <div className="mb-10">
             <div className="flex items-center gap-2 mb-2">
-              <Newspaper className="h-5 w-5 text-primary" />
-              <span className="text-xs font-semibold uppercase tracking-widest text-primary">News &amp; Updates</span>
+              <Newspaper className="h-6 w-6 text-primary" />
+              <span className="text-sm font-bold uppercase tracking-widest text-primary">News &amp; Updates</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-heading font-bold text-foreground mb-2">
+            <h1 className="text-3xl sm:text-4xl font-heading font-bold text-foreground mb-3">
               Latest from Devlink
             </h1>
-            <p className="text-muted-foreground max-w-xl">
+            <p className="text-base text-muted-foreground max-w-xl">
               Job market insights, platform updates, industry trends, and community announcements.
             </p>
           </div>
@@ -89,10 +89,10 @@ const News = () => {
               <button
                 key={cat}
                 onClick={() => { setCategory(cat); setPage(1); }}
-                className={`px-3 py-1.5 rounded-full text-xs font-medium capitalize transition-colors ${
+                className={`px-4 py-2 rounded-full text-sm font-semibold capitalize transition-colors ${
                   category === cat
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-card border border-border text-muted-foreground hover:text-foreground hover:border-primary/50"
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "bg-card border border-border text-foreground hover:text-primary hover:border-primary/60"
                 }`}
               >
                 {cat === "all" ? "All" : cat}
@@ -137,40 +137,40 @@ const News = () => {
                 >
                   {/* Image */}
                   {post.imageUrl ? (
-                    <div className="h-44 overflow-hidden bg-muted">
+                    <div className="h-52 overflow-hidden bg-muted">
                       <img
                         src={post.imageUrl}
                         alt={post.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       />
                     </div>
                   ) : (
-                    <div className="h-44 bg-gradient-to-br from-primary/10 via-accent/5 to-muted flex items-center justify-center">
-                      <Newspaper className="h-10 w-10 text-primary/30" />
+                    <div className="h-52 bg-gradient-to-br from-primary/10 via-accent/5 to-muted flex items-center justify-center">
+                      <Newspaper className="h-12 w-12 text-primary/30" />
                     </div>
                   )}
 
                   {/* Content */}
-                  <div className="p-5 flex flex-col flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium capitalize ${categoryColor[post.category] ?? categoryColor.general}`}>
+                  <div className="p-6 flex flex-col flex-1">
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className={`px-3 py-1 rounded-full text-xs font-bold capitalize ${categoryColor[post.category] ?? categoryColor.general}`}>
                         {post.category}
                       </span>
                     </div>
 
-                    <h2 className="font-heading font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-2 mb-2">
+                    <h2 className="text-lg font-heading font-bold text-foreground group-hover:text-primary transition-colors line-clamp-2 mb-3 leading-snug">
                       {post.title}
                     </h2>
 
                     {post.excerpt && (
-                      <p className="text-sm text-muted-foreground line-clamp-3 flex-1 mb-4">
+                      <p className="text-sm text-muted-foreground line-clamp-3 flex-1 mb-4 leading-relaxed">
                         {post.excerpt}
                       </p>
                     )}
 
-                    <div className="flex items-center gap-3 mt-auto text-xs text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <Calendar className="h-3 w-3" />
+                    <div className="flex items-center gap-3 mt-auto text-sm text-muted-foreground font-medium">
+                      <span className="flex items-center gap-1.5">
+                        <Calendar className="h-3.5 w-3.5" />
                         {formatDate(post.publishedAt ?? post.createdAt)}
                       </span>
                       <span>·</span>

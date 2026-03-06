@@ -128,7 +128,7 @@ const Register = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <div className="pt-24 pb-16 flex items-center justify-center">
+      <div className="pt-36 pb-16 flex items-center justify-center">
         <div className="w-full max-w-md mx-auto px-4">
           <div className="bg-card border border-border rounded-xl p-6 sm:p-8">
             {/* Header */}

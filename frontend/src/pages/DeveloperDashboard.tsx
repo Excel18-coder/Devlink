@@ -278,7 +278,7 @@ const DeveloperDashboard = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <div className="pt-24 pb-16">
+      <div className="pt-36 pb-16">
         <div className="container mx-auto px-4">
           {/* ── Digital Hero Header ─────────────────────────────────── */}
           <div className="relative rounded-2xl overflow-hidden mb-8">

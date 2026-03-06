@@ -18,7 +18,7 @@ const HeroSection = () => {
       <div className="hidden sm:block absolute top-20 right-0 w-80 h-80 bg-primary/10 rounded-full blur-2xl" />
       <div className="hidden sm:block absolute bottom-20 left-0 w-64 h-64 bg-accent/8 rounded-full blur-2xl" />
 
-      <div className="container relative z-10 mx-auto px-4 pt-20 pb-10 sm:pt-24 sm:pb-16">
+      <div className="container relative z-10 mx-auto px-4 pt-36 pb-10 sm:pt-36 sm:pb-16">
         <div className="max-w-3xl mx-auto sm:mx-0 text-center sm:text-left">
 
           {/* Badge */}

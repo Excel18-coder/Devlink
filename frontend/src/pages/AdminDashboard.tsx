@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { api, API_BASE } from "@/lib/api";
-import { Users, Briefcase, DollarSign, AlertTriangle, Settings, ScrollText, TrendingUp, RefreshCw, Trash2, ShieldCheck, Save, RotateCcw, Building2, CreditCard, FileText, Newspaper, Pencil, PlusCircle, Eye, EyeOff } from "lucide-react";
+import { Users, Briefcase, DollarSign, AlertTriangle, Settings, ScrollText, TrendingUp, RefreshCw, Trash2, ShieldCheck, Save, RotateCcw, Building2, CreditCard, FileText, Newspaper, Pencil, PlusCircle, Eye, EyeOff, ImagePlus, X as XIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   LineChart, Line, AreaChart, Area, BarChart, Bar,
@@ -165,6 +165,9 @@ const AdminDashboard = () => {
   const [newAdminForm, setNewAdminForm] = useState({ email: "", password: "", fullName: "" });
   const [newsPosts, setNewsPosts] = useState<NewsPostAdmin[]>([]);
   const [newsForm, setNewsForm] = useState(defaultNewsForm);
+  const [newsImageFile, setNewsImageFile] = useState<File | null>(null);
+  const [newsImagePreview, setNewsImagePreview] = useState("");
+  const [newsImageDragging, setNewsImageDragging] = useState(false);
   const [editingPostId, setEditingPostId] = useState<string | null>(null);
   const [newsFormOpen, setNewsFormOpen] = useState(false);
   const [newsSaving, setNewsSaving] = useState(false);
@@ -173,6 +176,7 @@ const AdminDashboard = () => {
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
   const esRef = useRef<EventSource | null>(null);
   const autoRefreshRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const newsImageInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   const fetchAnalytics = useCallback(async () => {
@@ -445,6 +449,8 @@ const AdminDashboard = () => {
   const openCreateNews = () => {
     setEditingPostId(null);
     setNewsForm(defaultNewsForm);
+    setNewsImageFile(null);
+    setNewsImagePreview("");
     setNewsFormOpen(true);
   };
 
@@ -458,31 +464,56 @@ const AdminDashboard = () => {
       imageUrl: post.imageUrl ?? "",
       status:   post.status,
     });
+    setNewsImageFile(null);
+    setNewsImagePreview(post.imageUrl ?? "");
     setNewsFormOpen(true);
   };
 
   const handleSaveNews = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newsForm.title.trim() || !newsForm.body.trim()) {
-      toast({ title: "Title and body are required", variant: "destructive" });
-      return;
+    if (!newsForm.title.trim()) {
+      toast({ title: "Title is required", variant: "destructive" }); return;
+    }
+    if (!newsForm.body.trim()) {
+      toast({ title: "Body content is required", variant: "destructive" }); return;
     }
     setNewsSaving(true);
     try {
-      if (editingPostId) {
-        await api(`/admin/news/${editingPostId}`, { method: "PATCH", body: newsForm });
-        toast({ title: "Post updated" });
-      } else {
-        await api("/admin/news", { method: "POST", body: newsForm });
-        toast({ title: "Post created" });
+      // Always use FormData — works with or without a file, no dual code paths
+      const fd = new FormData();
+      fd.append("title",    newsForm.title.trim());
+      fd.append("body",     newsForm.body.trim());
+      fd.append("excerpt",  newsForm.excerpt.trim());
+      fd.append("category", newsForm.category);
+      fd.append("status",   newsForm.status);
+      if (newsImageFile) {
+        fd.append("image", newsImageFile);
+      } else if (newsForm.imageUrl.trim()) {
+        fd.append("imageUrl", newsForm.imageUrl.trim());
       }
+      const token = localStorage.getItem("accessToken");
+      const url = editingPostId
+        ? `${API_BASE}/admin/news/${editingPostId}`
+        : `${API_BASE}/admin/news`;
+      const res = await fetch(url, {
+        method: editingPostId ? "PATCH" : "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: fd,
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error((err as { message?: string }).message ?? `Upload failed (${res.status})`);
+      }
+      toast({ title: editingPostId ? "✅ Post updated!" : "✅ Post published!" });
       setNewsFormOpen(false);
       setEditingPostId(null);
       setNewsForm(defaultNewsForm);
+      setNewsImageFile(null);
+      setNewsImagePreview("");
       fetchNews();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to save post";
-      toast({ title: msg, variant: "destructive" });
+      toast({ title: `❌ ${msg}`, variant: "destructive" });
     } finally {
       setNewsSaving(false);
     }
@@ -519,7 +550,7 @@ const AdminDashboard = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <div className="pt-24 pb-16">
+      <div className="pt-36 pb-16">
         <div className="container mx-auto px-4">
           {/* Header */}
           <div className="mb-8 flex items-center justify-between flex-wrap gap-4">
@@ -1759,17 +1790,17 @@ const AdminDashboard = () => {
                     <form onSubmit={handleSaveNews} className="space-y-4">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="sm:col-span-2 space-y-1">
-                          <Label className="text-xs text-muted-foreground">Title *</Label>
+                          <Label className="text-sm font-semibold">Title <span className="text-destructive">*</span></Label>
                           <Input
                             value={newsForm.title}
                             onChange={(e) => setNewsForm((f) => ({ ...f, title: e.target.value }))}
-                            placeholder="Post title…"
+                            placeholder="Enter a clear, descriptive headline…"
                             maxLength={200}
                             required
                           />
                         </div>
                         <div className="space-y-1">
-                          <Label className="text-xs text-muted-foreground">Category</Label>
+                          <Label className="text-sm font-semibold">Category</Label>
                           <Select
                             value={newsForm.category}
                             onValueChange={(v) => setNewsForm((f) => ({ ...f, category: v }))}
@@ -1783,43 +1814,133 @@ const AdminDashboard = () => {
                           </Select>
                         </div>
                         <div className="space-y-1">
-                          <Label className="text-xs text-muted-foreground">Status</Label>
+                          <Label className="text-sm font-semibold">Visibility</Label>
                           <Select
                             value={newsForm.status}
                             onValueChange={(v) => setNewsForm((f) => ({ ...f, status: v as "draft" | "published" }))}
                           >
                             <SelectTrigger><SelectValue /></SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="draft">Draft</SelectItem>
-                              <SelectItem value="published">Published</SelectItem>
+                              <SelectItem value="draft">🔒 Draft (not visible)</SelectItem>
+                              <SelectItem value="published">🌍 Published (live now)</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
                         <div className="sm:col-span-2 space-y-1">
-                          <Label className="text-xs text-muted-foreground">Excerpt (short summary shown in lists)</Label>
+                          <Label className="text-sm font-semibold">Short Summary <span className="text-muted-foreground font-normal text-xs">(shown in news list &amp; carousel)</span></Label>
                           <Input
                             value={newsForm.excerpt}
                             onChange={(e) => setNewsForm((f) => ({ ...f, excerpt: e.target.value }))}
-                            placeholder="Brief summary…"
+                            placeholder="One or two sentences describing this post…"
                             maxLength={500}
                           />
                         </div>
-                        <div className="sm:col-span-2 space-y-1">
-                          <Label className="text-xs text-muted-foreground">Cover Image URL (optional)</Label>
-                          <Input
-                            value={newsForm.imageUrl}
-                            onChange={(e) => setNewsForm((f) => ({ ...f, imageUrl: e.target.value }))}
-                            placeholder="https://…"
-                            type="url"
+                        <div className="sm:col-span-2 space-y-2">
+                          <Label className="text-sm font-semibold">Cover Image <span className="text-muted-foreground font-normal">(optional)</span></Label>
+
+                          {/* Hidden file input */}
+                          <input
+                            ref={newsImageInputRef}
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp"
+                            className="sr-only"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0] ?? null;
+                              if (!file) return;
+                              setNewsImageFile(file);
+                              setNewsImagePreview(URL.createObjectURL(file));
+                              setNewsForm((f) => ({ ...f, imageUrl: "" }));
+                              // reset input so same file can be re-selected
+                              e.target.value = "";
+                            }}
                           />
+
+                          {/* Drag-and-drop zone OR preview */}
+                          {newsImagePreview ? (
+                            <div className="relative rounded-xl overflow-hidden border border-border">
+                              <img
+                                src={newsImagePreview}
+                                alt="Cover preview"
+                                className="w-full h-48 object-cover"
+                              />
+                              <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                                <button
+                                  type="button"
+                                  onClick={() => newsImageInputRef.current?.click()}
+                                  className="bg-white/90 hover:bg-white text-black text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
+                                >
+                                  Change image
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => { setNewsImageFile(null); setNewsImagePreview(""); setNewsForm((f) => ({ ...f, imageUrl: "" })); }}
+                                  className="bg-red-500/90 hover:bg-red-500 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
+                                >
+                                  Remove
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div
+                              className={`relative rounded-xl border-2 border-dashed transition-colors cursor-pointer ${
+                                newsImageDragging
+                                  ? "border-primary bg-primary/10"
+                                  : "border-border hover:border-primary/60 hover:bg-muted/50"
+                              }`}
+                              onClick={() => newsImageInputRef.current?.click()}
+                              onDragOver={(e) => { e.preventDefault(); setNewsImageDragging(true); }}
+                              onDragLeave={() => setNewsImageDragging(false)}
+                              onDrop={(e) => {
+                                e.preventDefault();
+                                setNewsImageDragging(false);
+                                const file = e.dataTransfer.files?.[0];
+                                if (!file) return;
+                                if (!file.type.startsWith("image/")) {
+                                  toast({ title: "Please drop an image file (JPEG, PNG, or WebP)", variant: "destructive" });
+                                  return;
+                                }
+                                setNewsImageFile(file);
+                                setNewsImagePreview(URL.createObjectURL(file));
+                                setNewsForm((f) => ({ ...f, imageUrl: "" }));
+                              }}
+                            >
+                              <div className="flex flex-col items-center justify-center py-10 gap-3 text-muted-foreground select-none">
+                                <ImagePlus className="h-10 w-10 opacity-50" />
+                                <div className="text-center">
+                                  <p className="text-sm font-semibold text-foreground">Click to upload or drag &amp; drop</p>
+                                  <p className="text-xs mt-1">JPEG, PNG or WebP · max 10 MB</p>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* URL fallback (only shown when no file is selected) */}
+                          {!newsImageFile && (
+                            <div className="flex items-center gap-2">
+                              <div className="h-px flex-1 bg-border" />
+                              <span className="text-xs text-muted-foreground px-1">or paste an image URL</span>
+                              <div className="h-px flex-1 bg-border" />
+                            </div>
+                          )}
+                          {!newsImageFile && (
+                            <Input
+                              value={newsForm.imageUrl}
+                              onChange={(e) => {
+                                setNewsForm((f) => ({ ...f, imageUrl: e.target.value }));
+                                setNewsImagePreview(e.target.value);
+                              }}
+                              placeholder="https://example.com/cover.jpg"
+                              type="url"
+                            />
+                          )}
                         </div>
                         <div className="sm:col-span-2 space-y-1">
-                          <Label className="text-xs text-muted-foreground">Body *</Label>
+                          <Label className="text-sm font-semibold">Article Body <span className="text-destructive">*</span></Label>
                           <Textarea
                             value={newsForm.body}
                             onChange={(e) => setNewsForm((f) => ({ ...f, body: e.target.value }))}
-                            placeholder="Write the full article here. Use blank lines to separate paragraphs."
-                            className="min-h-[220px] font-mono text-sm resize-y"
+                            placeholder="Write the full article here.&#10;&#10;Leave a blank line between paragraphs — they will be displayed as separate blocks."
+                            className="min-h-[240px] text-sm resize-y"
                             maxLength={50000}
                             required
                           />
@@ -1827,14 +1948,14 @@ const AdminDashboard = () => {
                         </div>
                       </div>
                       <div className="flex items-center gap-3 pt-2">
-                        <Button type="submit" size="sm" disabled={newsSaving}>
-                          {newsSaving ? "Saving…" : editingPostId ? "Update Post" : "Create Post"}
+                        <Button type="submit" size="default" disabled={newsSaving} className="min-w-[140px]">
+                          {newsSaving ? "Saving…" : editingPostId ? "Update Post" : newsForm.status === "published" ? "Publish Now" : "Save as Draft"}
                         </Button>
                         <Button
                           type="button"
                           variant="ghost"
-                          size="sm"
-                          onClick={() => { setNewsFormOpen(false); setEditingPostId(null); setNewsForm(defaultNewsForm); }}
+                          size="default"
+                          onClick={() => { setNewsFormOpen(false); setEditingPostId(null); setNewsForm(defaultNewsForm); setNewsImageFile(null); setNewsImagePreview(""); }}
                         >
                           Cancel
                         </Button>

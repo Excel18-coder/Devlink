@@ -471,18 +471,26 @@ const AdminDashboard = () => {
 
   const handleSaveNews = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newsForm.title.trim()) {
-      toast({ title: "Title is required", variant: "destructive" }); return;
+    const trimmedTitle = newsForm.title.trim();
+    const trimmedBody  = newsForm.body.trim();
+    if (!trimmedTitle) {
+      toast({ title: "Please enter a title for this post.", variant: "destructive" }); return;
     }
-    if (!newsForm.body.trim()) {
-      toast({ title: "Body content is required", variant: "destructive" }); return;
+    if (trimmedTitle.length < 3) {
+      toast({ title: "Title must be at least 3 characters.", variant: "destructive" }); return;
+    }
+    if (!trimmedBody) {
+      toast({ title: "Please write the article body before publishing.", variant: "destructive" }); return;
+    }
+    if (trimmedBody.length < 10) {
+      toast({ title: "Article body must be at least 10 characters.", variant: "destructive" }); return;
     }
     setNewsSaving(true);
     try {
       // Always use FormData — works with or without a file, no dual code paths
       const fd = new FormData();
-      fd.append("title",    newsForm.title.trim());
-      fd.append("body",     newsForm.body.trim());
+      fd.append("title",    trimmedTitle);
+      fd.append("body",     trimmedBody);
       fd.append("excerpt",  newsForm.excerpt.trim());
       fd.append("category", newsForm.category);
       fd.append("status",   newsForm.status);
@@ -1787,16 +1795,16 @@ const AdminDashboard = () => {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <form onSubmit={handleSaveNews} className="space-y-4">
+                    <form onSubmit={handleSaveNews} className="space-y-4" noValidate>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="sm:col-span-2 space-y-1">
                           <Label className="text-sm font-semibold">Title <span className="text-destructive">*</span></Label>
                           <Input
+                            autoFocus
                             value={newsForm.title}
                             onChange={(e) => setNewsForm((f) => ({ ...f, title: e.target.value }))}
                             placeholder="Enter a clear, descriptive headline…"
                             maxLength={200}
-                            required
                           />
                         </div>
                         <div className="space-y-1">
@@ -1942,7 +1950,6 @@ const AdminDashboard = () => {
                             placeholder="Write the full article here.&#10;&#10;Leave a blank line between paragraphs — they will be displayed as separate blocks."
                             className="min-h-[240px] text-sm resize-y"
                             maxLength={50000}
-                            required
                           />
                           <p className="text-xs text-muted-foreground">{newsForm.body.length.toLocaleString()} / 50,000 characters</p>
                         </div>

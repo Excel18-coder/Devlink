@@ -1,0 +1,10 @@
+import mongoose, { Schema } from "mongoose";
+const conversationSchema = new Schema({
+    participantA: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    participantB: { type: Schema.Types.ObjectId, ref: "User", required: true }
+}, { timestamps: true });
+conversationSchema.index({ participantA: 1, participantB: 1 }, { unique: true });
+// Individual indexes allow MongoDB to satisfy the $or participant query via index union
+conversationSchema.index({ participantA: 1 });
+conversationSchema.index({ participantB: 1 });
+export const Conversation = mongoose.model("Conversation", conversationSchema);

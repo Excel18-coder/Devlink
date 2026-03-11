@@ -127,17 +127,47 @@ export const uploadFile = async <T = unknown>(endpoint: string, file: File, fiel
   return res.json() as Promise<T>;
 };
 
-// Multipart form-data POST — for submissions with text fields + optional file
-export const apiFormData = async <T = unknown>(endpoint: string, formData: FormData): Promise<T> => {
-  const token = getToken();
-  const res = await fetch(`${API_BASE}${endpoint}`, {
-    method: "POST",
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-    body: formData
-  });
+// Multipart form-data POST/PATCH — for submissions with text fields + optional file.
+// Includes the same 401 → refresh-token → retry logic as `api()`.
+export const apiFormData = async <T = unknown>(
+  endpoint: string,
+  formData: FormData,
+  method: "POST" | "PATCH" | "PUT" = "POST",
+): Promise<T> => {
+  const doFetch = (tok?: string) =>
+    fetch(`${API_BASE}${endpoint}`, {
+      method,
+      headers: tok ? { Authorization: `Bearer ${tok}` } : {},
+      body: formData,
+    });
+
+  let res = await doFetch(getToken() ?? undefined);
+
+  if (res.status === 401) {
+    const refreshToken = localStorage.getItem("refreshToken");
+    if (refreshToken) {
+      const refreshRes = await fetch(`${API_BASE}/auth/refresh`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refreshToken }),
+      });
+      if (refreshRes.ok) {
+        const data = await refreshRes.json();
+        localStorage.setItem("accessToken", data.accessToken);
+        if (data.refreshToken) localStorage.setItem("refreshToken", data.refreshToken);
+        res = await doFetch(data.accessToken);
+      } else {
+        localStorage.removeItem("accessToken");
+        localStorage.removeItem("refreshToken");
+        window.location.href = "/login";
+        throw new Error("Session expired. Please log in again.");
+      }
+    }
+  }
+
   if (!res.ok) {
     const err = await res.json().catch(() => ({ message: "Request failed" }));
-    throw new Error(err.message || "Request failed");
+    throw new Error((err as { message?: string }).message || "Request failed");
   }
   return res.json() as Promise<T>;
 };

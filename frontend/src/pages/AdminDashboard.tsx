@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { api, API_BASE } from "@/lib/api";
+import { api, API_BASE, apiFormData } from "@/lib/api";
 import { Users, Briefcase, DollarSign, AlertTriangle, Settings, ScrollText, TrendingUp, RefreshCw, Trash2, ShieldCheck, Save, RotateCcw, Building2, CreditCard, FileText, Newspaper, Pencil, PlusCircle, Eye, EyeOff, ImagePlus, X as XIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -499,19 +499,9 @@ const AdminDashboard = () => {
       } else if (newsForm.imageUrl.trim()) {
         fd.append("imageUrl", newsForm.imageUrl.trim());
       }
-      const token = localStorage.getItem("accessToken");
-      const url = editingPostId
-        ? `${API_BASE}/admin/news/${editingPostId}`
-        : `${API_BASE}/admin/news`;
-      const res = await fetch(url, {
-        method: editingPostId ? "PATCH" : "POST",
-        headers: { Authorization: `Bearer ${token}` },
-        body: fd,
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error((err as { message?: string }).message ?? `Upload failed (${res.status})`);
-      }
+      const endpoint = editingPostId ? `/admin/news/${editingPostId}` : "/admin/news";
+      const method   = editingPostId ? "PATCH" : "POST";
+      await apiFormData(endpoint, fd, method);
       toast({ title: editingPostId ? "✅ Post updated!" : "✅ Post published!" });
       setNewsFormOpen(false);
       setEditingPostId(null);
